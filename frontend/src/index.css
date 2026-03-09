@@ -1,0 +1,29 @@
+:root {
+  --bg: #0f0f10;
+  --card: #1a1a1d;
+  --accent: #ff6b35;
+  --text: #ffffff;
+  --muted: #9ca3af;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+.container {
+  max-width: 1000px;
+  margin: auto;
+  padding: 20px;
+}
