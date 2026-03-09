@@ -6,10 +6,10 @@ import gspread
 from google.oauth2.service_account import Credentials
 
 from app.config import (
-    GOOGLE_SERVICE_ACCOUNT_FILE,
     GOOGLE_SHEETS_ID,
     PRODUCTS_SHEET,
     DELIVERY_POINTS_SHEET,
+    ensure_service_account_file,
 )
 from app.schemas import Product, DeliveryPoint
 from datetime import datetime
@@ -39,8 +39,10 @@ def _to_bool(value: Any, default: bool = False) -> bool:
 
 class GoogleSheetsService:
     def __init__(self) -> None:
+        service_account_file = ensure_service_account_file()
+
         creds = Credentials.from_service_account_file(
-            GOOGLE_SERVICE_ACCOUNT_FILE,
+           service_account_file,
             scopes=SCOPES,
         )
         client = gspread.authorize(creds)
