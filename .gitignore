@@ -19,6 +19,7 @@ __pycache__/
 
 backend/.env
 backend/service_account.json
+backend/service_account_local.json
 .env
 
 # Editor directories and files
