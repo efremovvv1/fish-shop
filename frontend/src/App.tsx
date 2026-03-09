@@ -63,7 +63,7 @@ export default function App() {
   }, [products, selectedCategory]);
 
   return (
-    <div className="container" style={{ paddingBottom: 260 }}>
+    <div className="container" style={{ paddingBottom: 100 }}>
       <Hero />
 
       <p style={{ color: "#9ca3af", marginBottom: 20 }}>
