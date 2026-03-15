@@ -4,18 +4,19 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-GOOGLE_SHEETS_ID = os.getenv("GOOGLE_SHEETS_ID", "")
-PRODUCTS_SHEET = os.getenv("PRODUCTS_SHEET", "Products")
-DELIVERY_POINTS_SHEET = os.getenv("DELIVERY_POINTS_SHEET", "DeliveryPoints")
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/fishshop")
 
-GOOGLE_SERVICE_ACCOUNT_JSON = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON", "")
-GOOGLE_SERVICE_ACCOUNT_FILE = os.getenv("GOOGLE_SERVICE_ACCOUNT_FILE", "service_account.json")
+ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "")
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "")
+JWT_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MINUTES", "480"))
 
+PUBLIC_BACKEND_URL = os.getenv("PUBLIC_BACKEND_URL", "http://127.0.0.1:8000")
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 
-def ensure_service_account_file() -> str:
-    if GOOGLE_SERVICE_ACCOUNT_JSON:
-        path = Path("/tmp/service_account.json")
-        path.write_text(GOOGLE_SERVICE_ACCOUNT_JSON, encoding="utf-8")
-        return str(path)
-
-    return GOOGLE_SERVICE_ACCOUNT_FILE
+ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv("ALLOWED_ORIGINS", "").split(",")
+    if origin.strip()
+]

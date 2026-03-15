@@ -1,19 +1,15 @@
-from typing import List, Optional
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
 
-from fastapi import APIRouter, Query
-
+from app.db import get_db
 from app.schemas import DeliveryPoint
-from app.services.sheets import GoogleSheetsService
+from app.services.db_service import DBService
 
-router = APIRouter(prefix="/delivery-points", tags=["delivery-points"])
+router = APIRouter(prefix="/delivery-points", tags=["delivery"])
 
 
-@router.get("", response_model=List[DeliveryPoint])
-def get_delivery_points(city: Optional[str] = Query(default=None)) -> List[DeliveryPoint]:
-    service = GoogleSheetsService()
-    points = service.get_active_delivery_points()
-
-    if city:
-        points = [p for p in points if p.city.lower() == city.lower()]
-
-    return points
+@router.get("", response_model=list[DeliveryPoint])
+def get_delivery_points(db: Session = Depends(get_db)):
+    service = DBService(db)
+    points = service.get_all_delivery_points()
+    return [p for p in points if p["active"]]

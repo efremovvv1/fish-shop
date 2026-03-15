@@ -1,44 +1,21 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useCartStore } from "../store/cart";
 
 type Props = {
   onCheckout: () => void;
-  onExpired?: () => void;
 };
 
-function formatTime(totalSeconds: number) {
-  const min = Math.floor(totalSeconds / 60);
-  const sec = totalSeconds % 60;
-  return `${min}:${sec.toString().padStart(2, "0")}`;
-}
-
-export default function CartDrawer({ onCheckout, onExpired }: Props) {
+export default function CartDrawer({ onCheckout }: Props) {
   const items = useCartStore((state) => state.items);
   const total = useCartStore((state) => state.getTotal());
   const clearCart = useCartStore((state) => state.clearCart);
   const increaseItem = useCartStore((state) => state.increaseItem);
   const decreaseItem = useCartStore((state) => state.decreaseItem);
   const removeItem = useCartStore((state) => state.removeItem);
-  const draftId = useCartStore((state) => state.draftId);
-  const getRemainingSeconds = useCartStore((state) => state.getRemainingSeconds);
+  const canEdit = useCartStore((state) => state.canEdit());
+  const cartStatus = useCartStore((state) => state.cartStatus);
 
-  const [seconds, setSeconds] = useState(getRemainingSeconds());
-  const [expanded, setExpanded] = useState(false);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      const next = getRemainingSeconds();
-      setSeconds(next);
-
-      if (next <= 0 && items.length > 0) {
-        clearCart();
-        setExpanded(false);
-        onExpired?.();
-      }
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [getRemainingSeconds, clearCart, items.length, onExpired]);
+  const [collapsed, setCollapsed] = useState(true);
 
   if (items.length === 0) return null;
 
@@ -49,45 +26,68 @@ export default function CartDrawer({ onCheckout, onExpired }: Props) {
         left: 12,
         right: 12,
         bottom: 12,
-        background: "#151518",
+        background: "rgba(10, 19, 27, 0.92)",
         color: "#fff",
-        border: "1px solid #26262b",
+        border: "1px solid rgba(255,255,255,0.08)",
         borderRadius: 20,
         boxShadow: "0 12px 30px rgba(0,0,0,0.35)",
+        backdropFilter: "blur(10px)",
         zIndex: 50,
         overflow: "hidden",
       }}
     >
-      <button
-        onClick={() => setExpanded((prev) => !prev)}
+      <div
         style={{
           width: "100%",
-          background: "transparent",
-          border: "none",
-          color: "#fff",
           padding: 16,
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          textAlign: "left",
-          cursor: "pointer",
+          gap: 12,
         }}
       >
         <div>
           <div style={{ fontSize: 20, fontWeight: 700 }}>Корзина</div>
           <div style={{ color: "#9ca3af", fontSize: 14 }}>
-            {items.length} поз. · {total.toFixed(2)} EUR · Осталось: {formatTime(seconds)}
+            {items.length} поз. · {total.toFixed(2)} EUR
           </div>
+          {cartStatus === "submitted" && (
+            <div style={{ color: "#86efac", fontSize: 13, marginTop: 6 }}>
+              Заказ уже сохранён
+            </div>
+          )}
         </div>
 
-        <div style={{ fontSize: 20 }}>{expanded ? "▾" : "▴"}</div>
-      </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {collapsed && (
+            <button onClick={onCheckout} style={checkoutBtn(canEdit)} disabled={!canEdit}>
+              {canEdit ? "Заказ" : "Закрыто"}
+            </button>
+          )}
 
-      {expanded && (
+          <button
+            onClick={() => setCollapsed((prev) => !prev)}
+            style={{
+              width: 42,
+              height: 42,
+              borderRadius: 12,
+              border: "none",
+              background: "rgba(255,255,255,0.08)",
+              color: "#fff",
+              fontSize: 18,
+              cursor: "pointer",
+            }}
+          >
+            {collapsed ? "▴" : "▾"}
+          </button>
+        </div>
+      </div>
+
+      {!collapsed && (
         <div
           style={{
             padding: "0 16px 16px 16px",
-            borderTop: "1px solid #26262b",
+            borderTop: "1px solid rgba(255,255,255,0.08)",
             maxHeight: "55vh",
             overflowY: "auto",
           }}
@@ -103,18 +103,20 @@ export default function CartDrawer({ onCheckout, onExpired }: Props) {
             }}
           >
             <div style={{ color: "#9ca3af", fontSize: 14 }}>
-              {draftId ? `Номер корзины: ${draftId}` : ""}
+              {canEdit ? "Корзину можно редактировать" : "Редактирование недоступно"}
             </div>
 
             <button
+              disabled={!canEdit}
               onClick={clearCart}
               style={{
-                background: "#2a2a30",
+                background: canEdit ? "#24313a" : "#374151",
                 color: "#fff",
                 border: "none",
                 borderRadius: 12,
                 padding: "10px 14px",
                 fontWeight: 600,
+                opacity: canEdit ? 1 : 0.7,
               }}
             >
               Очистить
@@ -126,14 +128,15 @@ export default function CartDrawer({ onCheckout, onExpired }: Props) {
               <div
                 key={item.sku}
                 style={{
-                  background: "#1d1d22",
-                  border: "1px solid #2a2a30",
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.06)",
                   borderRadius: 16,
                   padding: 14,
                 }}
               >
                 <div style={{ fontWeight: 700, marginBottom: 6 }}>{item.name}</div>
-                <div style={{ color: "#9ca3af", fontSize: 14, marginBottom: 12 }}>
+
+                <div style={{ color: "#9ca3af", fontSize: 14, marginBottom: 10 }}>
                   {item.price} {item.currency} / {item.unit}
                 </div>
 
@@ -148,96 +151,94 @@ export default function CartDrawer({ onCheckout, onExpired }: Props) {
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <button
+                      disabled={!canEdit}
                       onClick={() => decreaseItem(item.sku)}
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 10,
-                        border: "none",
-                        background: "#2a2a30",
-                        color: "#fff",
-                        fontSize: 18,
-                      }}
+                      style={qtyBtn(canEdit)}
                     >
-                      -
+                      −
                     </button>
 
-                    <div style={{ minWidth: 90, textAlign: "center", fontWeight: 700 }}>
+                    <div style={{ minWidth: 70, textAlign: "center" }}>
                       {item.qty} {item.unit}
                     </div>
 
                     <button
+                      disabled={!canEdit}
                       onClick={() => increaseItem(item.sku)}
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 10,
-                        border: "none",
-                        background: "#ff6b35",
-                        color: "#fff",
-                        fontSize: 18,
-                      }}
+                      style={qtyBtn(canEdit)}
                     >
                       +
                     </button>
                   </div>
 
-                  <div style={{ fontWeight: 700 }}>
-                    {(item.qty * item.price).toFixed(2)} {item.currency}
-                  </div>
+                  <button
+                    disabled={!canEdit}
+                    onClick={() => removeItem(item.sku)}
+                    style={removeBtn(canEdit)}
+                  >
+                    Удалить
+                  </button>
                 </div>
-
-                <button
-                  onClick={() => removeItem(item.sku)}
-                  style={{
-                    marginTop: 12,
-                    background: "transparent",
-                    color: "#ff8b6a",
-                    border: "none",
-                    fontWeight: 600,
-                    padding: 0,
-                  }}
-                >
-                  Удалить
-                </button>
               </div>
             ))}
           </div>
 
-          <div
+          <button
+            disabled={!canEdit}
+            onClick={onCheckout}
             style={{
+              width: "100%",
               marginTop: 16,
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              gap: 12,
-              flexWrap: "wrap",
+              background: canEdit ? "#ff6b35" : "#4b5563",
+              color: "#fff",
+              border: "none",
+              borderRadius: 14,
+              padding: "14px 16px",
+              fontWeight: 700,
+              fontSize: 16,
+              opacity: canEdit ? 1 : 0.7,
             }}
           >
-            <div>
-              <div style={{ color: "#9ca3af", fontSize: 14 }}>Итого</div>
-              <div style={{ fontSize: 24, fontWeight: 800 }}>
-                {total.toFixed(2)} EUR
-              </div>
-            </div>
-
-            <button
-              onClick={onCheckout}
-              style={{
-                background: "#ff6b35",
-                color: "#fff",
-                border: "none",
-                borderRadius: 14,
-                padding: "14px 18px",
-                fontWeight: 700,
-                fontSize: 16,
-              }}
-            >
-              Подтвердить заказ
-            </button>
-          </div>
+            {canEdit ? "Сохранить заказ" : "Редактирование недоступно"}
+          </button>
         </div>
       )}
     </div>
   );
+}
+
+function qtyBtn(enabled: boolean) {
+  return {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    border: "none",
+    background: enabled ? "#24313a" : "#374151",
+    color: "#fff",
+    fontSize: 20,
+    opacity: enabled ? 1 : 0.7,
+  } as const;
+}
+
+function removeBtn(enabled: boolean) {
+  return {
+    border: "none",
+    borderRadius: 10,
+    padding: "10px 14px",
+    background: enabled ? "#3b1f24" : "#374151",
+    color: "#fff",
+    opacity: enabled ? 1 : 0.7,
+  } as const;
+}
+
+function checkoutBtn(enabled: boolean) {
+  return {
+    border: "none",
+    borderRadius: 12,
+    padding: "10px 14px",
+    background: enabled ? "#ff6b35" : "#4b5563",
+    color: "#fff",
+    fontWeight: 700,
+    opacity: enabled ? 1 : 0.7,
+  } as const;
 }

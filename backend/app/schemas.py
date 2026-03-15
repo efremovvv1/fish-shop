@@ -1,5 +1,5 @@
-from typing import Optional, List
-from pydantic import BaseModel
+from typing import Optional, List, Literal
+from pydantic import BaseModel, Field
 
 
 class Product(BaseModel):
@@ -14,6 +14,9 @@ class Product(BaseModel):
     step: float
     available_qty: float
     notes: Optional[str] = ""
+    image_url: Optional[str] = ""
+    short_description: Optional[str] = ""
+    description: Optional[str] = ""
     active: bool = True
 
 
@@ -22,6 +25,7 @@ class DeliveryPoint(BaseModel):
     place: str
     active: bool = True
     notes: Optional[str] = ""
+
 
 class OrderItemCreate(BaseModel):
     sku: str
@@ -42,3 +46,191 @@ class OrderCreate(BaseModel):
 class OrderCreateResponse(BaseModel):
     order_id: str
     status: str
+
+
+class TelegramAuthPayload(BaseModel):
+    init_data: str = Field(..., min_length=1)
+
+
+class TelegramUser(BaseModel):
+    telegram_user_id: str
+    username: Optional[str] = ""
+    first_name: Optional[str] = ""
+    last_name: Optional[str] = ""
+
+
+class CartUpsertRequest(BaseModel):
+    customer_name: Optional[str] = ""
+    phone: Optional[str] = ""
+    city: Optional[str] = ""
+    delivery_point: Optional[str] = ""
+    comment: Optional[str] = ""
+    items: List[OrderItemCreate]
+
+
+class CartResponse(BaseModel):
+    telegram_user_id: str
+    telegram_username: Optional[str] = ""
+    customer_name: Optional[str] = ""
+    phone: Optional[str] = ""
+    city: Optional[str] = ""
+    delivery_point: Optional[str] = ""
+    comment: Optional[str] = ""
+    items: List[OrderItemCreate]
+    status: str
+    updated_at: Optional[str] = None
+    submitted_at: Optional[str] = None
+
+
+class SubmitOrderRequest(BaseModel):
+    init_data: str = Field(..., min_length=1)
+
+
+class ShopStatusResponse(BaseModel):
+    status: Literal["closed", "open", "locked"]
+
+class ShopStatusUpdateRequest(BaseModel):
+    status: Literal["closed", "open", "locked"]
+
+
+class ShopStatusUpdateResponse(BaseModel):
+    status: Literal["closed", "open", "locked"]
+    updated: bool
+
+class AdminLoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+class AdminLoginResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+class AdminCartItemResponse(BaseModel):
+    sku: str
+    product_name: str
+    unit: str
+    qty: float
+
+
+class AdminCartResponse(BaseModel):
+    cart_id: int
+    telegram_user_id: str
+    telegram_username: Optional[str] = ""
+    customer_name: Optional[str] = ""
+    phone: Optional[str] = ""
+    city: Optional[str] = ""
+    delivery_point: Optional[str] = ""
+    comment: Optional[str] = ""
+    status: str
+    updated_at: Optional[str] = None
+    submitted_at: Optional[str] = None
+    items: List[AdminCartItemResponse]
+
+
+class AdminCartsListResponse(BaseModel):
+    carts: List[AdminCartResponse]
+
+class AdminProductTotalResponse(BaseModel):
+    sku: str
+    product_name: str
+    unit: str
+    total_qty: float
+
+
+class AdminProductTotalsResponse(BaseModel):
+    totals: List[AdminProductTotalResponse]
+
+class AdminProductResponse(BaseModel):
+    id: int
+    sku: str
+    name: str
+    category: str
+    price: float
+    currency: str
+    unit: str
+    pack_size: Optional[float] = None
+    min_qty: float
+    step: float
+    available_qty: float
+    notes: Optional[str] = ""
+    image_url: Optional[str] = ""
+    short_description: Optional[str] = ""
+    description: Optional[str] = ""
+    active: bool
+
+
+class AdminProductsListResponse(BaseModel):
+    products: List[AdminProductResponse]
+
+
+class AdminProductCreateRequest(BaseModel):
+    sku: str
+    name: str
+    category: str
+    price: float
+    currency: str = "EUR"
+    unit: str
+    pack_size: Optional[float] = None
+    min_qty: float
+    step: float
+    available_qty: float
+    notes: Optional[str] = ""
+    image_url: Optional[str] = ""
+    short_description: Optional[str] = ""
+    description: Optional[str] = ""
+    active: bool = True
+
+
+class AdminDeliveryPointResponse(BaseModel):
+    id: int
+    city: str
+    place: str
+    active: bool
+    notes: Optional[str] = ""
+
+
+class AdminDeliveryPointsListResponse(BaseModel):
+    delivery_points: List[AdminDeliveryPointResponse]
+
+
+class AdminDeliveryPointCreateRequest(BaseModel):
+    city: str
+    place: str
+    active: bool = True
+    notes: Optional[str] = ""
+
+class AdminProductUpdateRequest(BaseModel):
+    sku: str
+    name: str
+    category: str
+    price: float
+    currency: str = "EUR"
+    unit: str
+    pack_size: Optional[float] = None
+    min_qty: float
+    step: float
+    available_qty: float
+    notes: Optional[str] = ""
+    image_url: Optional[str] = ""
+    short_description: Optional[str] = ""
+    description: Optional[str] = ""
+    active: bool = True
+
+class DeleteResponse(BaseModel):
+    deleted: bool
+
+class AdminDeliveryPointUpdateRequest(BaseModel):
+    city: str
+    place: str
+    active: bool = True
+    notes: Optional[str] = ""
+
+class UploadImageResponse(BaseModel):
+    image_url: str 
+
+class ClearCartsResponse(BaseModel):
+    deleted: bool
+    cleared_carts: int
+    shop_status: Literal["closed", "open", "locked"]

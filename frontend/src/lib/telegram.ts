@@ -4,6 +4,7 @@ declare global {
       WebApp?: {
         ready: () => void;
         expand: () => void;
+        initData?: string;
         initDataUnsafe?: {
           user?: {
             id?: number;
@@ -23,10 +24,14 @@ export function getTelegramUser() {
 
   return {
     telegramId: user?.id ? String(user.id) : "",
-    telegramUsername: user?.username ? `@${user.username}` : "",
+    telegramUsername: user?.username ?? "",
     firstName: user?.first_name ?? "",
     lastName: user?.last_name ?? "",
   };
+}
+
+export function getTelegramInitData() {
+  return window.Telegram?.WebApp?.initData ?? "";
 }
 
 export function initTelegramApp() {

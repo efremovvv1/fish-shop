@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
-import { api } from "../api/client";
+import { api, saveServerCart, submitServerOrder } from "../api/client";
 import { useCartStore } from "../store/cart";
 import type { DeliveryPoint } from "../types";
 import { getTelegramUser } from "../lib/telegram";
@@ -20,15 +20,13 @@ export default function CheckoutModal({
 }: Props) {
   const items = useCartStore((state) => state.items);
   const total = useCartStore((state) => state.getTotal());
-  const clearCart = useCartStore((state) => state.clearCart);
+  const checkout = useCartStore((state) => state.checkout);
+  const setCheckoutField = useCartStore((state) => state.setCheckoutField);
+  const setCheckoutFields = useCartStore((state) => state.setCheckoutFields);
+  //const setCartStatus = useCartStore((state) => state.setCartStatus);
+  const canEdit = useCartStore((state) => state.canEdit());
 
   const [deliveryPoints, setDeliveryPoints] = useState<DeliveryPoint[]>([]);
-  const [customerName, setCustomerName] = useState("");
-  const [telegramUsername, setTelegramUsername] = useState("");
-  const [phone, setPhone] = useState("");
-  const [city, setCity] = useState("");
-  const [deliveryPoint, setDeliveryPoint] = useState("");
-  const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const tg = useMemo(() => getTelegramUser(), []);
@@ -37,27 +35,36 @@ export default function CheckoutModal({
     if (!open) return;
 
     if (tg.telegramUsername) {
-      setTelegramUsername((prev) => prev || tg.telegramUsername);
+      setCheckoutFields({ telegramUsername: tg.telegramUsername });
     }
 
-    if (tg.firstName) {
+    if (tg.firstName && !checkout.customerName) {
       const fullName = [tg.firstName, tg.lastName].filter(Boolean).join(" ");
-      setCustomerName((prev) => prev || fullName);
-    }
+      setCheckoutFields({ customerName: fullName });
+      }
+    }, [open, tg, setCheckoutFields, checkout.customerName]);
+
+   useEffect(() => {
+    if (!open) return;
 
     api.get<DeliveryPoint[]>("/delivery-points").then((res) => {
       setDeliveryPoints(res.data);
     });
-  }, [open, tg]);
+   }, [open]);
 
-  const filteredPoints = city
-    ? deliveryPoints.filter((p) => p.city === city)
+  const filteredPoints = checkout.city
+    ? deliveryPoints.filter((p) => p.city === checkout.city)
     : deliveryPoints;
 
   const cities = [...new Set(deliveryPoints.map((p) => p.city))];
 
   const submitOrder = async () => {
-    if (!customerName || !city || !deliveryPoint || items.length === 0) {
+    if (!canEdit) {
+      onError?.();
+      return;
+    }
+
+    if (!checkout.customerName || !checkout.city || !checkout.deliveryPoint || items.length === 0) {
       onError?.();
       return;
     }
@@ -65,25 +72,32 @@ export default function CheckoutModal({
     try {
       setSubmitting(true);
 
-      const payload = {
-        customer_name: customerName,
-        telegram_username: telegramUsername,
-        telegram_id: tg.telegramId,
-        phone,
-        city,
-        delivery_point: deliveryPoint,
-        comment,
+      const savedCart = await saveServerCart({
+        customer_name: checkout.customerName,
+        phone: checkout.phone,
+        city: checkout.city,
+        delivery_point: checkout.deliveryPoint,
+        comment: checkout.comment,
         items: items.map((item) => ({
           sku: item.sku,
           qty: item.qty,
         })),
-      };
+      });
 
-      const res = await api.post("/orders", payload);
+      if (!savedCart) {
+        onError?.();
+        return;
+      }
 
-      clearCart();
+      const res = await submitServerOrder();
+
+      if (!res) {
+        onError?.();
+        return;
+      }
+     
       onClose();
-      onSuccess?.(res.data.order_id);
+      onSuccess?.(res.order_id);
     } catch (error) {
       console.error(error);
       onError?.();
@@ -118,77 +132,108 @@ export default function CheckoutModal({
           color: "#fff",
         }}
       >
-        <h2 style={{ marginTop: 0 }}>Подтверждение заказа</h2>
+        <h2 style={{ marginTop: 0 }}>Ваш заказ</h2>
 
         <div style={{ display: "grid", gap: 12 }}>
           <input
             placeholder="Ваше имя"
-            value={customerName}
-            onChange={(e) => setCustomerName(e.target.value)}
+            value={checkout.customerName}
+            onChange={(e) => setCheckoutField("customerName", e.target.value)}
             style={inputStyle}
           />
 
           <input
             placeholder="Telegram username"
-            value={telegramUsername}
-            onChange={(e) => setTelegramUsername(e.target.value)}
+            value={checkout.telegramUsername}
+            onChange={(e) => setCheckoutField("telegramUsername", e.target.value)}
             style={inputStyle}
+            disabled
           />
 
           <input
             placeholder="Телефон"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
+            value={checkout.phone}
+            onChange={(e) => setCheckoutField("phone", e.target.value)}
             style={inputStyle}
           />
 
           <select
-            value={city}
+            value={checkout.city}
             onChange={(e) => {
-              setCity(e.target.value);
-              setDeliveryPoint("");
+              setCheckoutField("city", e.target.value);
+              setCheckoutField("deliveryPoint", "");
             }}
             style={inputStyle}
           >
             <option value="">Выберите город</option>
-            {cities.map((cityName) => (
-              <option key={cityName} value={cityName}>
-                {cityName}
+            {cities.map((city) => (
+              <option key={city} value={city}>
+                {city}
               </option>
             ))}
           </select>
 
           <select
-            value={deliveryPoint}
-            onChange={(e) => setDeliveryPoint(e.target.value)}
+            value={checkout.deliveryPoint}
+            onChange={(e) => setCheckoutField("deliveryPoint", e.target.value)}
             style={inputStyle}
           >
+
             <option value="">Выберите точку выдачи</option>
             {filteredPoints.map((point) => (
               <option key={`${point.city}-${point.place}`} value={point.place}>
-                {point.city} — {point.place} ({point.notes || "без времени"})
+                {point.place}
               </option>
             ))}
           </select>
-
+          {checkout.deliveryPoint && (
+            <div
+                style={{
+                fontSize: 13,
+                color: "#9ca3af",
+                lineHeight: 1.4,
+                marginTop: -2,
+                }}
+            >
+                {filteredPoints.find((point) => point.place === checkout.deliveryPoint)?.notes || ""}
+            </div>
+            )}
+          
           <textarea
-            placeholder="Комментарий к заказу"
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            style={{ ...inputStyle, minHeight: 90, resize: "vertical" }}
+            placeholder="Комментарий"
+            value={checkout.comment}
+            onChange={(e) => setCheckoutField("comment", e.target.value)}
+            style={{ ...inputStyle, minHeight: 100, resize: "vertical" }}
           />
+
+          <div
+            style={{
+              background: "#1d1d22",
+              border: "1px solid #2a2a30",
+              borderRadius: 14,
+              padding: 14,
+            }}
+          >
+            <div style={{ fontWeight: 700, marginBottom: 8 }}>Ваш заказ</div>
+            <div style={{ display: "grid", gap: 6 }}>
+              {items.map((item) => (
+                <div key={item.sku} style={{ color: "#d1d5db" }}>
+                  {item.name} — {item.qty} {item.unit}
+                </div>
+              ))}
+            </div>
+            <div style={{ marginTop: 12, fontWeight: 700 }}>
+              Итого: {total.toFixed(2)} EUR
+            </div>
+          </div>
         </div>
 
-        <div style={{ marginTop: 16, color: "#9ca3af" }}>
-          Итого: <strong style={{ color: "#fff" }}>{total.toFixed(2)} EUR</strong>
-        </div>
-
-        <div style={{ display: "flex", gap: 12, marginTop: 20 }}>
-          <button onClick={onClose} style={secondaryButtonStyle}>
+        <div style={{ display: "flex", gap: 12, marginTop: 18 }}>
+          <button onClick={onClose} style={secondaryBtn} disabled={submitting}>
             Отмена
           </button>
-          <button onClick={submitOrder} style={primaryButtonStyle} disabled={submitting}>
-            {submitting ? "Оформляем..." : "Подтвердить заказ"}
+          <button onClick={submitOrder} style={primaryBtn} disabled={submitting}>
+            {submitting ? "Сохранение..." : "Сохранить заказ"}
           </button>
         </div>
       </div>
@@ -199,29 +244,32 @@ export default function CheckoutModal({
 const inputStyle: CSSProperties = {
   width: "100%",
   background: "#1d1d22",
-  color: "#fff",
   border: "1px solid #2a2a30",
-  borderRadius: 12,
-  padding: "12px 14px",
-  fontSize: 15,
+  borderRadius: 14,
+  padding: "14px 16px",
+  color: "#fff",
+  fontSize: 16,
+  boxSizing: "border-box",
 };
 
-const primaryButtonStyle: CSSProperties = {
+const primaryBtn: CSSProperties = {
   flex: 1,
   background: "#ff6b35",
   color: "#fff",
   border: "none",
-  borderRadius: 12,
-  padding: "12px 16px",
+  borderRadius: 14,
+  padding: "14px 16px",
   fontWeight: 700,
+  fontSize: 16,
 };
 
-const secondaryButtonStyle: CSSProperties = {
+const secondaryBtn: CSSProperties = {
   flex: 1,
   background: "#2a2a30",
   color: "#fff",
   border: "none",
-  borderRadius: 12,
-  padding: "12px 16px",
+  borderRadius: 14,
+  padding: "14px 16px",
   fontWeight: 700,
+  fontSize: 16,
 };

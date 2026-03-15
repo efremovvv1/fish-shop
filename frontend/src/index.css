@@ -27,3 +27,9 @@ button {
   margin: auto;
   padding: 20px;
 }
+
+@media (max-width: 900px) {
+  .container {
+    padding: 16px;
+  }
+}

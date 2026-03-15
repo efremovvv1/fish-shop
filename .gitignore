@@ -7,22 +7,35 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Frontend / Admin
 frontend/node_modules
 frontend/dist
+admin/node_modules
+admin/dist
 dist-ssr
 *.local
 
+# Python
 backend/venv
 backend/.venv
 __pycache__/
 *.pyc
+*.pyo
 
+# Env / secrets
 backend/.env
+admin/.env
+frontend/.env
+.env
 backend/service_account.json
 backend/service_account_local.json
-.env
 
-# Editor directories and files
+# Uploaded files (optional)
+# если не хочешь хранить загрузки в git:
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Editor / OS
 .vscode/*
 !.vscode/extensions.json
 .idea

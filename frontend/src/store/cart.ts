@@ -12,45 +12,99 @@ export type CartItem = {
   step: number;
 };
 
+type CheckoutFields = {
+  customerName: string;
+  telegramUsername: string;
+  phone: string;
+  city: string;
+  deliveryPoint: string;
+  comment: string;
+};
+
 type CartState = {
   items: CartItem[];
-  draftId: string | null;
-  expiresAt: number | null;
+  checkout: CheckoutFields;
+  cartStatus: "draft" | "submitted";
+  shopStatus: "closed" | "open" | "locked";
+  initialized: boolean;
+
+  setInitialized: (value: boolean) => void;
+  setShopStatus: (status: "closed" | "open" | "locked") => void;
+  setCartStatus: (status: "draft" | "submitted") => void;
+
+  setCheckoutField: (field: keyof CheckoutFields, value: string) => void;
+  setCheckoutFields: (payload: Partial<CheckoutFields>) => void;
+
   addItem: (product: Product) => void;
   increaseItem: (sku: string) => void;
   decreaseItem: (sku: string) => void;
   removeItem: (sku: string) => void;
+
+  replaceItemsFromServer: (
+    items: { sku: string; qty: number }[],
+    products: Product[]
+  ) => void;
+
   clearCart: () => void;
   getTotal: () => number;
   getCount: () => number;
-  startDraftIfNeeded: () => void;
-  getRemainingSeconds: () => number;
+  canEdit: () => boolean;
 };
 
-function generateDraftId() {
-  return `DRAFT-${Date.now()}`;
+function buildCartItem(product: Product, qty: number) {
+  return {
+    sku: product.sku,
+    name: product.name,
+    price: product.price,
+    currency: product.currency,
+    qty,
+    unit: product.unit,
+    min_qty: product.min_qty,
+    step: product.step,
+  };
 }
 
 export const useCartStore = create<CartState>((set, get) => ({
   items: [],
-  draftId: null,
-  expiresAt: null,
+  checkout: {
+    customerName: "",
+    telegramUsername: "",
+    phone: "",
+    city: "",
+    deliveryPoint: "",
+    comment: "",
+  },
+  cartStatus: "draft",
+  shopStatus: "closed",
+  initialized: false,
 
-  startDraftIfNeeded: () => {
-  const { draftId, expiresAt } = get();
+  setInitialized: (value) => set({ initialized: value }),
+  setShopStatus: (status) => set({ shopStatus: status }),
+  setCartStatus: (status) => set({ cartStatus: status }),
 
-  if (draftId && expiresAt && expiresAt > Date.now()) {
-    return;
-  }
+  setCheckoutField: (field, value) =>
+    set({
+      checkout: {
+        ...get().checkout,
+        [field]: value,
+      },
+    }),
 
-  set({
-    draftId: generateDraftId(),
-    expiresAt: Date.now() + 5 * 60 * 1000,
-  });
+  setCheckoutFields: (payload) =>
+    set({
+      checkout: {
+        ...get().checkout,
+        ...payload,
+      },
+    }),
+
+  canEdit: () => {
+    const { shopStatus } = get();
+    return shopStatus === "open";
   },
 
   addItem: (product) => {
-    get().startDraftIfNeeded();
+    if (!get().canEdit()) return;
 
     const existing = get().items.find((item) => item.sku === product.sku);
 
@@ -66,23 +120,13 @@ export const useCartStore = create<CartState>((set, get) => ({
     }
 
     set({
-      items: [
-        ...get().items,
-        {
-          sku: product.sku,
-          name: product.name,
-          price: product.price,
-          currency: product.currency,
-          qty: product.min_qty,
-          unit: product.unit,
-          min_qty: product.min_qty,
-          step: product.step,
-        },
-      ],
+      items: [...get().items, buildCartItem(product, product.min_qty)],
     });
   },
 
   increaseItem: (sku) => {
+    if (!get().canEdit()) return;
+
     set({
       items: get().items.map((item) =>
         item.sku === sku
@@ -93,6 +137,8 @@ export const useCartStore = create<CartState>((set, get) => ({
   },
 
   decreaseItem: (sku) => {
+    if (!get().canEdit()) return;
+
     const item = get().items.find((i) => i.sku === sku);
     if (!item) return;
 
@@ -113,26 +159,41 @@ export const useCartStore = create<CartState>((set, get) => ({
   },
 
   removeItem: (sku) => {
+    if (!get().canEdit()) return;
+
     set({
       items: get().items.filter((item) => item.sku !== sku),
     });
   },
 
+  replaceItemsFromServer: (serverItems, products) => {
+    const mapped = serverItems
+      .map((serverItem) => {
+        const product = products.find((p) => p.sku === serverItem.sku);
+        if (!product) return null;
+        return buildCartItem(product, serverItem.qty);
+      })
+      .filter(Boolean) as CartItem[];
+
+    set({ items: mapped });
+  },
+
   clearCart: () =>
     set({
       items: [],
-      draftId: null,
-      expiresAt: null,
+      cartStatus: "draft",
+      checkout: {
+        customerName: "",
+        telegramUsername: "",
+        phone: "",
+        city: "",
+        deliveryPoint: "",
+        comment: "",
+      },
     }),
 
   getTotal: () =>
     get().items.reduce((sum, item) => sum + item.price * item.qty, 0),
 
   getCount: () => get().items.reduce((sum, item) => sum + item.qty, 0),
-
-  getRemainingSeconds: () => {
-    const expiresAt = get().expiresAt;
-    if (!expiresAt) return 0;
-    return Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
-  },
 }));
