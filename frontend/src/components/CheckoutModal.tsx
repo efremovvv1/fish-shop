@@ -59,12 +59,25 @@ export default function CheckoutModal({
   const cities = [...new Set(deliveryPoints.map((p) => p.city))];
 
   const submitOrder = async () => {
+    alert(
+    JSON.stringify({
+      canEdit,
+      customerName: checkout.customerName,
+      city: checkout.city,
+      deliveryPoint: checkout.deliveryPoint,
+      itemsLength: items.length,
+      telegramInitDataExists: !!window.Telegram?.WebApp?.initData,
+      telegramUser: window.Telegram?.WebApp?.initDataUnsafe?.user || null,
+    })
+    );
     if (!canEdit) {
+      alert("Blocked: canEdit=false");
       onError?.();
       return;
     }
 
     if (!checkout.customerName || !checkout.city || !checkout.deliveryPoint || items.length === 0) {
+      alert("Blocked: validation failed");
       onError?.();
       return;
     }
@@ -85,6 +98,7 @@ export default function CheckoutModal({
       });
 
       if (!savedCart) {
+        alert("savedCart is null");
         onError?.();
         return;
       }
@@ -92,6 +106,7 @@ export default function CheckoutModal({
       const res = await submitServerOrder();
 
       if (!res) {
+        alert("submitServerOrder result is null");
         onError?.();
         return;
       }
@@ -99,6 +114,7 @@ export default function CheckoutModal({
       onClose();
       onSuccess?.(res.order_id);
     } catch (error) {
+      alert(`submitOrder failed: ${String(error)}`);
       console.error(error);
       onError?.();
     } finally {
