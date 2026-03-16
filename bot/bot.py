@@ -38,8 +38,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     text = (
-        "Добро пожаловать в магазин.\n"
-        "Чтобы начать заказ, перейдите в приложение."
+        "🐟 Добро пожаловать в магазин «Бавария Рыба».\n\n"
+        "Как оформить заказ:\n"
+        "1. Нажмите кнопку «Открыть магазин».\n"
+        "2. Добавьте нужные товары в корзину.\n"
+        "3. Укажите имя, телефон, город и точку выдачи.\n"
+        "4. Нажмите «Сохранить заказ».\n\n"
+        "После сохранения вы получите сообщение с составом заказа и примерной суммой.\n"
+        "До окончания приёма заявок заказ можно изменить."
     )
 
     await update.message.reply_text(text, reply_markup=reply_markup)
@@ -50,13 +56,13 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         return
 
     await update.message.reply_text(
-        "Используйте команду /start, чтобы открыть магазин."
+        "Используйте команду /start, чтобы открыть магазин и оформить заказ."
     )
 
 
 def main() -> None:
     if not BOT_TOKEN:
-        raise RuntimeError("TELEGRAM_BOT_TOKEN is not set in .env")
+        raise RuntimeError("TELEGRAM_BOT_TOKEN is not set")
 
     app = Application.builder().token(BOT_TOKEN).build()
 

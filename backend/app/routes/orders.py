@@ -16,16 +16,11 @@ def submit_order(payload: SubmitOrderRequest, db: Session = Depends(get_db)) -> 
     service = DBService(db)
 
     service.confirm_cart(user)
-    return OrderCreateResponse(order_id="cart-saved", status="submitted")
 
-@router.post("/submit", response_model=OrderCreateResponse)
-def submit_order(payload: SubmitOrderRequest, db: Session = Depends(get_db)) -> OrderCreateResponse:
-    user = validate_telegram_init_data(payload.init_data)
-    service = DBService(db)
-
-    service.confirm_cart(user)
-
-    message_text = service.build_cart_summary_message(user)
-    send_telegram_message(user.telegram_user_id, message_text)
+    try:
+        message_text = service.build_cart_summary_message(user)
+        send_telegram_message(user.telegram_user_id, message_text)
+    except Exception as e:
+        print(f"Failed to send Telegram message: {e}")
 
     return OrderCreateResponse(order_id="cart-saved", status="submitted")

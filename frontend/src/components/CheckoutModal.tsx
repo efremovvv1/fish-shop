@@ -133,7 +133,8 @@ export default function CheckoutModal({
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        padding: 16,
+        padding: 12,
+        paddingBottom: "max(12px, env(safe-area-inset-bottom))",
         zIndex: 1000,
       }}
     >
@@ -141,11 +142,15 @@ export default function CheckoutModal({
         style={{
           width: "100%",
           maxWidth: 620,
+          maxHeight: "calc(100vh - 24px)",
           background: "#151518",
-          border: "1px solid #26262b",
+          border: "1px solid rgba(255, 255, 255, 0.08)",
           borderRadius: 20,
           padding: 20,
           color: "#fff",
+          overflowY: "auto",
+          WebkitOverflowScrolling: "touch",
+          boxSizing: "border-box",
         }}
       >
         <h2 style={{ marginTop: 0 }}>Ваш заказ</h2>
@@ -167,7 +172,7 @@ export default function CheckoutModal({
           />
 
           <input
-            placeholder="Телефон"
+            placeholder="Телефон (опционально)"
             value={checkout.phone}
             onChange={(e) => setCheckoutField("phone", e.target.value)}
             style={inputStyle}
@@ -219,7 +224,7 @@ export default function CheckoutModal({
             placeholder="Комментарий"
             value={checkout.comment}
             onChange={(e) => setCheckoutField("comment", e.target.value)}
-            style={{ ...inputStyle, minHeight: 100, resize: "vertical" }}
+            style={{ ...inputStyle, minHeight: 72, resize: "vertical" }}
           />
 
           <div
@@ -244,7 +249,7 @@ export default function CheckoutModal({
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: 12, marginTop: 18 }}>
+        <div style={{ display: "flex", gap: 12, marginTop: 18, position: "sticky", bottom: -20, background: "#151518", paddingTop: 12, paddingBottom: "max(4px, env(safe-area-inset-bottom))" }}>
           <button onClick={onClose} style={secondaryBtn} disabled={submitting}>
             Отмена
           </button>

@@ -711,16 +711,17 @@ class DBService:
             total += line_total
             currency = product.currency or "EUR"
 
-            lines.append(f"- {product.name} — {qty} {product.unit}")
+            qty_text = int(qty) if qty.is_integer() else qty
+            lines.append(f"• {product.name} — {qty_text} {product.unit}")
 
-        items_text = "\n".join(lines) if lines else "Нет товаров"
+        items_text = "\n".join(lines) if lines else "• Нет товаров"
 
         return (
-            "Ваш заказ сохранён.\n\n"
-            f"Имя: {cart.customer_name or '-'}\n"
-            f"Город: {cart.city or '-'}\n"
-            f"Точка выдачи: {cart.delivery_point or '-'}\n\n"
-            f"Состав заказа:\n{items_text}\n\n"
-            f"Примерная сумма: {total:.2f} {currency}\n\n"
+            "✅ Заказ сохранён\n\n"
+            f"👤 Имя: {cart.customer_name or '-'}\n"
+            f"📍 Город: {cart.city or '-'}\n"
+            f"🏪 Точка выдачи: {cart.delivery_point or '-'}\n\n"
+            f"🧾 Состав заказа:\n{items_text}\n\n"
+            f"💶 Примерная сумма: {total:.2f} {currency}\n\n"
             "Вы можете изменить заказ до окончания приёма заявок."
         )
