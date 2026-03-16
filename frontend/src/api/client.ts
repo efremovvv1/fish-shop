@@ -40,7 +40,6 @@ export async function saveServerCart(payload: {
 
   if (!initData) {
     console.warn("Telegram initData not found. Order submit is unavailable outside Telegram.");
-    alert("saveServerCart: initData is empty");
     return null;
   }
 
@@ -57,7 +56,6 @@ export async function submitServerOrder(): Promise<{ order_id: string; status: s
 
   if (!initData) {
     console.warn("Telegram initData not found. Order submit is unavailable outside Telegram.");
-    alert("saveServerCart: initData is empty");
     return null;
   }
 

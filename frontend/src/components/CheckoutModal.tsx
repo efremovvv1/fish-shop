@@ -59,27 +59,30 @@ export default function CheckoutModal({
   const cities = [...new Set(deliveryPoints.map((p) => p.city))];
 
   const submitOrder = async () => {
-    alert(
-    JSON.stringify({
-      canEdit,
-      customerName: checkout.customerName,
-      city: checkout.city,
-      deliveryPoint: checkout.deliveryPoint,
-      itemsLength: items.length,
-      telegramInitDataExists: !!window.Telegram?.WebApp?.initData,
-      telegramUser: window.Telegram?.WebApp?.initDataUnsafe?.user || null,
-    })
-    );
+    
     if (!canEdit) {
-      alert("Blocked: canEdit=false");
-      onError?.();
+      alert("Приём заказов сейчас закрыт");
       return;
     }
 
-    if (!checkout.customerName || !checkout.city || !checkout.deliveryPoint || items.length === 0) {
-      alert("Blocked: validation failed");
-      onError?.();
+    if (!checkout.customerName.trim()) {
+      alert("Введите имя")
       return;
+    }
+
+    if(!checkout.city){
+        alert("Выберите город")
+        return;
+    }
+
+    if(!checkout.deliveryPoint){
+        alert("Выберите точку выдачи")
+        return;
+    }
+
+    if(items.length == 0){
+        alert("Корзина пустая")
+        return;
     }
 
     try {
