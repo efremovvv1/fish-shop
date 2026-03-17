@@ -29,6 +29,7 @@ export type CartItemDraft = {
 };
 
 export type CartResponse = {
+  delivery_date: string;
   telegram_user_id: string;
   telegram_username?: string;
   customer_name?: string;
@@ -44,4 +45,11 @@ export type CartResponse = {
 
 export type ShopStatusResponse = {
   status: "closed" | "open" | "locked";
+};
+
+export type DeliveryDate = {
+  id: number;
+  city: string;
+  delivery_date: string;
+  active: boolean;
 };

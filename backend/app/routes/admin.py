@@ -6,6 +6,7 @@ from openpyxl import Workbook
 import uuid
 from pathlib import Path
 from datetime import datetime
+import os
 
 from openpyxl.styles import Alignment, Font, PatternFill, Border, Side
 from openpyxl.utils import get_column_letter
@@ -511,3 +512,58 @@ def update_shop_status(
         status=payload.status,
         updated=True,
     )
+
+@router.get(
+    "/delivery-dates",
+    response_model=list[DeliveryDateResponse],
+    dependencies=[Depends(verify_admin_token)],
+)
+def admin_get_delivery_dates(db: Session = Depends(get_db)):
+    service = DBService(db)
+    return service.get_all_delivery_dates_admin()
+
+@router.post(
+    "/delivery-dates",
+    response_model=DeliveryDateResponse,
+    dependencies=[Depends(verify_admin_token)],
+)
+def admin_create_delivery_date(
+    payload: DeliveryDateCreateRequest,
+    db: Session = Depends(get_db),
+):
+    service = DBService(db)
+    return service.create_delivery_date(
+        city=payload.city,
+        delivery_date=payload.delivery_date,
+        active=payload.active,
+    )
+
+@router.put(
+    "/delivery-dates/{item_id}",
+    response_model=DeliveryDateResponse,
+    dependencies=[Depends(verify_admin_token)],
+)
+def admin_update_delivery_date(
+    item_id: int,
+    payload: DeliveryDateUpdateRequest,
+    db: Session = Depends(get_db),
+):
+    service = DBService(db)
+    return service.update_delivery_date(
+        item_id=item_id,
+        city=payload.city,
+        delivery_date=payload.delivery_date,
+        active=payload.active,
+    )
+
+@router.delete(
+    "/delivery-dates/{item_id}",
+    dependencies=[Depends(verify_admin_token)],
+)
+def admin_delete_delivery_date(
+    item_id: int,
+    db: Session = Depends(get_db),
+):
+    service = DBService(db)
+    service.delete_delivery_date(item_id)
+    return {"ok": True}

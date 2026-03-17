@@ -13,6 +13,7 @@ from app.routes.shop import router as shop_router
 from app.routes.admin import router as admin_router
 from app.db import Base, engine
 from app import models
+from app.routes.delivery_dates import router as delivery_dates_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -47,3 +48,4 @@ app.include_router(orders_router)
 app.include_router(cart_router)
 app.include_router(shop_router)
 app.include_router(admin_router)
+app.include_router(delivery_dates_router)

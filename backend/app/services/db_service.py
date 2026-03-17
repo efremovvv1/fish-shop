@@ -17,6 +17,7 @@ from app.models import (
 )
 
 from app.schemas import CartUpsertRequest, CartResponse, TelegramUser
+from app.models import DeliveryDate
 
 
 class DBService:
@@ -119,6 +120,7 @@ class DBService:
         cart.city = payload.city or ""
         cart.delivery_point = payload.delivery_point or ""
         cart.comment = payload.comment or ""
+        cart.delivery_date = payload.delivery_date
 
         if cart.status != "submitted":
             cart.status = "draft"
@@ -179,9 +181,11 @@ class DBService:
 
         self.db.commit()
     
-    def get_all_carts(self):
+    def get_all_carts(self, delivery_date=None):
         carts = self.db.query(Cart).join(User, Cart.user_id == User.id).all()
         products_map = {p.sku: p for p in self.db.query(Product).all()}
+        if delivery_date:
+            query = query.filter(Cart.delivery_date == delivery_date)
 
         result = []
         for cart in carts:
@@ -644,6 +648,7 @@ class DBService:
                 phone=cart.phone or "",
                 city=cart.city or "",
                 delivery_point=cart.delivery_point or "",
+                delivery_date=cart.delivery_date,
                 comment=cart.comment or "",
                 total=0,
                 currency="EUR",
@@ -725,3 +730,56 @@ class DBService:
             f"💶 Примерная сумма: {total:.2f} {currency}\n\n"
             "Вы можете изменить заказ до окончания приёма заявок."
         )
+    
+    def get_delivery_dates(self, city: str | None = None):
+        query = self.db.query(DeliveryDate).filter(DeliveryDate.active == True)
+
+        if city:
+            query = query.filter(DeliveryDate.city == city)
+
+        return query.order_by(DeliveryDate.delivery_date.asc()).all()
+
+
+    def get_all_delivery_dates_admin(self):
+        return (
+            self.db.query(DeliveryDate)
+            .order_by(DeliveryDate.city.asc(), DeliveryDate.delivery_date.asc())
+            .all()
+        )
+
+
+    def create_delivery_date(self, city: str, delivery_date, active: bool = True):
+        item = DeliveryDate(
+            city=city.strip(),
+            delivery_date=delivery_date,
+            active=active,
+        )
+        self.db.add(item)
+        self.db.commit()
+        self.db.refresh(item)
+        return item
+
+
+    def update_delivery_date(self, item_id: int, city: str, delivery_date, active: bool = True):
+        item = self.db.query(DeliveryDate).filter(DeliveryDate.id == item_id).first()
+        if not item:
+            raise HTTPException(status_code=404, detail="Delivery date not found")
+
+        item.city = city.strip()
+        item.delivery_date = delivery_date
+        item.active = active
+        item.updated_at = datetime.utcnow()
+
+        self.db.commit()
+        self.db.refresh(item)
+        return item
+
+
+    def delete_delivery_date(self, item_id: int):
+        item = self.db.query(DeliveryDate).filter(DeliveryDate.id == item_id).first()
+        if not item:
+            raise HTTPException(status_code=404, detail="Delivery date not found")
+
+        self.db.delete(item)
+        self.db.commit()
+        return True

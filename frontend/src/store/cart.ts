@@ -18,6 +18,7 @@ type CheckoutFields = {
   phone: string;
   city: string;
   deliveryPoint: string;
+  deliveryDate: string;
   comment: string;
 };
 
@@ -72,6 +73,7 @@ export const useCartStore = create<CartState>((set, get) => ({
     phone: "",
     city: "",
     deliveryPoint: "",
+    deliveryDate: "",
     comment: "",
   },
   cartStatus: "draft",
@@ -188,6 +190,7 @@ export const useCartStore = create<CartState>((set, get) => ({
         phone: "",
         city: "",
         deliveryPoint: "",
+        deliveryDate: "",
         comment: "",
       },
     }),

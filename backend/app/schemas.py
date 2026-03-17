@@ -1,6 +1,6 @@
 from typing import Optional, List, Literal
 from pydantic import BaseModel, Field
-
+from datetime import date
 
 class Product(BaseModel):
     sku: str
@@ -75,6 +75,7 @@ class CartResponse(BaseModel):
     phone: Optional[str] = ""
     city: Optional[str] = ""
     delivery_point: Optional[str] = ""
+    delivery_date: Optional[str] = ""
     comment: Optional[str] = ""
     items: List[OrderItemCreate]
     status: str
@@ -234,3 +235,18 @@ class ClearCartsResponse(BaseModel):
     deleted: bool
     cleared_carts: int
     shop_status: Literal["closed", "open", "locked"]
+
+class DeliveryDateResponse(BaseModel):
+    id: int
+    city: str
+    delivery_date: date
+    active: bool
+
+    class Config:
+        from_attributes = True
+
+class DeliveryDateCreateRequest(BaseModel):
+    city: str
+    delivery_date: date
+    active: bool = True
+

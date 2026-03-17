@@ -50,7 +50,7 @@ class Cart(Base):
     delivery_point = Column(String, default="", nullable=False)
     comment = Column(Text, default="", nullable=False)
     status = Column(String, default="draft", nullable=False)
-
+    delivery_date = Column(Date, nullable=True)
     updated_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     submitted_at = Column(DateTime, nullable=True)
 
@@ -85,7 +85,7 @@ class Order(Base):
     city = Column(String, default="", nullable=False)
     delivery_point = Column(String, default="", nullable=False)
     comment = Column(Text, default="", nullable=False)
-
+    delivery_date = Column(Date, nullable=True)
     total = Column(Numeric(10, 2), default=0, nullable=False)
     currency = Column(String, default="EUR", nullable=False)
 
@@ -145,3 +145,13 @@ class DeliveryPointModel(Base):
     active = Column(String, default="true", nullable=False)
     notes = Column(Text, default="", nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+class DeliveryDate(Base):
+    __tablename__ = "delivery_dates"
+
+    id = Column(Integer, primary_key=True, index=True)
+    city = Column(String, nullable=False, index=True)
+    delivery_date = Column(Date, nullable=False, index=True)
+    active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)

@@ -1,6 +1,7 @@
 import axios from "axios";
 import { getTelegramInitData } from "../lib/telegram";
-import type { CartResponse, ShopStatusResponse } from "../types";
+import type { CartResponse, ShopStatusResponse, DeliveryDate  } from "../types";
+
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
@@ -33,6 +34,7 @@ export async function saveServerCart(payload: {
   phone: string;
   city: string;
   delivery_point: string;
+  delivery_date: string;
   comment: string;
   items: { sku: string; qty: number }[];
 }): Promise<CartResponse | null> {
@@ -63,5 +65,11 @@ export async function submitServerOrder(): Promise<{ order_id: string; status: s
     init_data: initData,
   });
 
+  return res.data;
+}
+
+export async function getDeliveryDates(city?: string) {
+  const params = city ? { city } : {};
+  const res = await api.get<DeliveryDate[]>("/delivery-dates", { params });
   return res.data;
 }

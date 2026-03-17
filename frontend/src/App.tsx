@@ -135,6 +135,7 @@ export default function App() {
           phone: cartRes.phone || "",
           city: cartRes.city || "",
           deliveryPoint: cartRes.delivery_point || "",
+          deliveryDate: cartRes.delivery_date || "",
           comment: cartRes.comment || "",
         });
       } else {
@@ -171,6 +172,7 @@ export default function App() {
           phone: checkout.phone,
           city: checkout.city,
           delivery_point: checkout.deliveryPoint,
+          delivery_date: checkout.deliveryDate,
           comment: checkout.comment,
           items: items.map((item) => ({
             sku: item.sku,

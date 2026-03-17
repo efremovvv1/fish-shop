@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
-import { api, saveServerCart, submitServerOrder } from "../api/client";
+import { api, saveServerCart, submitServerOrder, getDeliveryDates } from "../api/client";
 import { useCartStore } from "../store/cart";
-import type { DeliveryPoint } from "../types";
+import type { DeliveryPoint, DeliveryDate } from "../types";
 import { getTelegramUser } from "../lib/telegram";
 
 type Props = {
@@ -27,6 +27,7 @@ export default function CheckoutModal({
   const canEdit = useCartStore((state) => state.canEdit());
 
   const [deliveryPoints, setDeliveryPoints] = useState<DeliveryPoint[]>([]);
+  const [deliveryDates, setDeliveryDates] = useState<DeliveryDate[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
   const tg = useMemo(() => getTelegramUser(), []);
@@ -43,6 +44,18 @@ export default function CheckoutModal({
       setCheckoutFields({ customerName: fullName });
       }
     }, [open, tg, setCheckoutFields, checkout.customerName]);
+
+   useEffect(() => {
+    if (!checkout.city) {
+        setDeliveryDates([]);
+        setCheckoutField("deliveryDate", "");
+        return;
+    }
+
+    getDeliveryDates(checkout.city).then((data) => {
+        setDeliveryDates(data);
+    });
+    }, [checkout.city, setCheckoutField]);
 
    useEffect(() => {
     if (!open) return;
@@ -70,6 +83,11 @@ export default function CheckoutModal({
       return;
     }
 
+    if (!checkout.deliveryDate) {
+        alert("Выберите дату доставки");
+        return;
+    }
+
     if(!checkout.city){
         alert("Выберите город")
         return;
@@ -93,6 +111,7 @@ export default function CheckoutModal({
         phone: checkout.phone,
         city: checkout.city,
         delivery_point: checkout.deliveryPoint,
+        delivery_date: checkout.deliveryDate,
         comment: checkout.comment,
         items: items.map((item) => ({
           sku: item.sku,
@@ -182,10 +201,24 @@ export default function CheckoutModal({
           />
 
           <select
+            value={checkout.deliveryDate}
+            onChange={(e) => setCheckoutField("deliveryDate", e.target.value)}
+            style={inputStyle}
+            >
+            <option value="">Выберите дату доставки</option>
+            {deliveryDates.map((item) => (
+                <option key={item.id} value={item.delivery_date}>
+                {item.delivery_date}
+                </option>
+            ))}
+            </select>
+
+          <select
             value={checkout.city}
             onChange={(e) => {
               setCheckoutField("city", e.target.value);
               setCheckoutField("deliveryPoint", "");
+              setCheckoutField("deliveryDate", "");
             }}
             style={inputStyle}
           >
