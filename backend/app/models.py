@@ -6,9 +6,10 @@ from sqlalchemy import (
     String,
     Text,
     DateTime,
-    Date,
     ForeignKey,
     Numeric,
+    Date,
+    Boolean,
     UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
@@ -86,7 +87,7 @@ class Order(Base):
     city = Column(String, default="", nullable=False)
     delivery_point = Column(String, default="", nullable=False)
     comment = Column(Text, default="", nullable=False)
-    delivery_date = Column(Date, nullable=True)
+    
     total = Column(Numeric(10, 2), default=0, nullable=False)
     currency = Column(String, default="EUR", nullable=False)
 
