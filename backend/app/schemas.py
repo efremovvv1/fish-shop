@@ -250,3 +250,8 @@ class DeliveryDateCreateRequest(BaseModel):
     delivery_date: date
     active: bool = True
 
+class DeliveryDateUpdateRequest(BaseModel):
+    city: str
+    delivery_date: date
+    active: bool = True
+
