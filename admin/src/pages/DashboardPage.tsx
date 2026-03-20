@@ -495,6 +495,8 @@ export default function DashboardPage() {
             >
               {clearLoading ? "Очистка..." : "Очистить корзины"}
             </button>
+            
+            <a href="/delivery-dates">Даты доставки</a>
           </div>
         </div>
 
