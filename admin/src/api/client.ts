@@ -9,6 +9,7 @@ import type {
   ShopStatusUpdateResponse,
   AdminProduct,
   AdminDeliveryPoint,
+  AdminDeliveryDate,
 } from "../types";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -297,4 +298,23 @@ export async function downloadClientFormatExcel() {
   link.click();
   link.remove();
   window.URL.revokeObjectURL(url);
+}
+
+export async function getAdminDeliveryDates() {
+  const res = await api.get<AdminDeliveryDate[]>("/admin/delivery-dates");
+  return res.data;
+}
+
+export async function createAdminDeliveryDate(payload: {
+  city: string;
+  delivery_date: string;
+  active: boolean;
+}) {
+  const res = await api.post<AdminDeliveryDate>("/admin/delivery-dates", payload);
+  return res.data;
+}
+
+export async function deleteAdminDeliveryDate(id: number) {
+  const res = await api.delete(`/admin/delivery-dates/${id}`);
+  return res.data;
 }

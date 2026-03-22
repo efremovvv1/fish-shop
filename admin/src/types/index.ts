@@ -73,3 +73,11 @@ export type AdminDeliveryPoint = {
   active: boolean;
   notes?: string;
 };
+
+export type AdminDeliveryDate = {
+  id: number;
+  city: string;
+  delivery_date: string; // ISO строка "2026-03-28"
+  active: boolean;
+  updated_at?: string | null;
+};

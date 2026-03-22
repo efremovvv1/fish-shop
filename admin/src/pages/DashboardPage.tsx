@@ -19,6 +19,9 @@ import {
   uploadAdminProductImage,
   clearAdminCarts,
   downloadClientFormatExcel,
+  getAdminDeliveryDates,
+  createAdminDeliveryDate,
+  deleteAdminDeliveryDate,
 } from "../api/client";
 import type {
   AdminCart,
@@ -26,7 +29,10 @@ import type {
   AdminProduct,
   AdminProductTotal,
   ShopStatus,
+  AdminDeliveryDate,
 } from "../types";
+
+import { Link } from "react-router-dom"
 
 type TabKey = "orders" | "products" | "delivery";
 
@@ -36,6 +42,7 @@ export default function DashboardPage() {
   const [productTotals, setProductTotals] = useState<AdminProductTotal[]>([]);
   const [products, setProducts] = useState<AdminProduct[]>([]);
   const [deliveryPoints, setDeliveryPoints] = useState<AdminDeliveryPoint[]>([]);
+  const [deliveryDates, setDeliveryDates] = useState<AdminDeliveryDate[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [statusLoading, setStatusLoading] = useState(false);
@@ -99,31 +106,40 @@ export default function DashboardPage() {
     notes: "",
   });
 
+  const [deliveryDateForm, setDeliveryDateForm] = useState({
+    city: "",
+    delivery_date: "",
+    active: true,
+   });
+
   const loadData = async () => {
     setLoading(true);
     setError("");
 
     try {
-      const [statusRes, cartsRes, totalsRes, productsRes, pointsRes] = await Promise.all([
-        getAdminShopStatus(),
-        getAdminCarts(),
-        getAdminProductTotals(),
-        getAdminProducts(),
-        getAdminDeliveryPoints(),
-      ]);
+        const [statusRes, cartsRes, totalsRes, productsRes, pointsRes, datesRes] =
+        await Promise.all([
+            getAdminShopStatus(),
+            getAdminCarts(),
+            getAdminProductTotals(),
+            getAdminProducts(),
+            getAdminDeliveryPoints(),
+            getAdminDeliveryDates(),
+        ]);
 
-      setShopStatus(statusRes.status);
-      setCarts(cartsRes);
-      setProductTotals(totalsRes);
-      setProducts(productsRes);
-      setDeliveryPoints(pointsRes);
+        setShopStatus(statusRes.status);
+        setCarts(cartsRes);
+        setProductTotals(totalsRes);
+        setProducts(productsRes);
+        setDeliveryPoints(pointsRes);
+        setDeliveryDates(datesRes);
     } catch (err) {
-      console.error(err);
-      setError("Не удалось загрузить данные админки");
+        console.error(err);
+        setError("Не удалось загрузить данные админки");
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
-  };
+    };
 
   useEffect(() => {
     loadData();
@@ -310,6 +326,45 @@ export default function DashboardPage() {
       alert("Не удалось добавить точку выдачи");
     }
   };
+
+  const handleCreateDeliveryDate = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+  try {
+    await createAdminDeliveryDate({
+      city: deliveryDateForm.city.trim(),
+      delivery_date: deliveryDateForm.delivery_date,
+      active: deliveryDateForm.active,
+    });
+
+    setDeliveryDateForm({
+      city: "",
+      delivery_date: "",
+      active: true,
+    });
+
+    await loadData();
+    showCopyMessage("Дата доставки добавлена");
+  } catch (err) {
+    console.error(err);
+    alert("Не удалось добавить дату доставки");
+  }
+};
+
+    const handleDeleteDeliveryDate = async (id: number, city: string, date: string) => {
+        const ok = window.confirm(`Удалить дату ${date} для города "${city}"?`);
+        if (!ok) return;
+
+        try {
+            await deleteAdminDeliveryDate(id);
+            await loadData();
+            showCopyMessage("Дата доставки удалена");
+        } catch (err) {
+            console.error(err);
+            alert("Не удалось удалить дату доставки");
+        }
+        };
+
   const handleUpdateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -495,8 +550,10 @@ export default function DashboardPage() {
             >
               {clearLoading ? "Очистка..." : "Очистить корзины"}
             </button>
-            
-            <a href="/delivery-dates">Даты доставки</a>
+
+            <Link to="/delivery-dates" className="btn btn-secondary">
+                Даты доставки
+            </Link>
           </div>
         </div>
 
@@ -1042,6 +1099,93 @@ export default function DashboardPage() {
           </div>
         </>
       )}
+
+      <div className="card">
+        <h2>Добавить дату доставки</h2>
+
+        <form className="form-grid" onSubmit={handleCreateDeliveryDate}>
+            <input
+            className="input"
+            placeholder="Город"
+            value={deliveryDateForm.city}
+            onChange={(e) =>
+                setDeliveryDateForm((prev) => ({ ...prev, city: e.target.value }))
+            }
+            required
+            />
+
+            <input
+            className="input"
+            type="date"
+            value={deliveryDateForm.delivery_date}
+            onChange={(e) =>
+                setDeliveryDateForm((prev) => ({
+                ...prev,
+                delivery_date: e.target.value,
+                }))
+            }
+            required
+            />
+
+            <label className="checkbox-row form-span">
+            <input
+                type="checkbox"
+                checked={deliveryDateForm.active}
+                onChange={(e) =>
+                setDeliveryDateForm((prev) => ({
+                    ...prev,
+                    active: e.target.checked,
+                }))
+                }
+            />
+            Активна
+            </label>
+
+            <button className="btn btn-primary form-span" type="submit">
+            Добавить дату доставки
+            </button>
+        </form>
+        </div>
+
+        <div className="card">
+            <h2>Даты доставки</h2>
+
+            <div className="table-wrap">
+                <table className="data-table">
+                <thead>
+                    <tr>
+                    <th>ID</th>
+                    <th>Город</th>
+                    <th>Дата</th>
+                    <th>Активна</th>
+                    <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {deliveryDates.map((item) => (
+                    <tr key={item.id}>
+                        <td>{item.id}</td>
+                        <td>{item.city}</td>
+                        <td>{item.delivery_date}</td>
+                        <td>{item.active ? "Да" : "Нет"}</td>
+                        <td>
+                        <div className="actions-row">
+                            <button
+                            className="btn btn-danger btn-small"
+                            onClick={() =>
+                                handleDeleteDeliveryDate(item.id, item.city, item.delivery_date)
+                            }
+                            >
+                            Удалить
+                            </button>
+                        </div>
+                        </td>
+                    </tr>
+                    ))}
+                </tbody>
+                </table>
+            </div>
+            </div>
 
         {editingPoint && (
         <div className="modal-overlay" onClick={() => setEditingPoint(null)}>
