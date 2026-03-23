@@ -2,7 +2,6 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import ProtectedRoute from "./components/ProtectedRoute";
-import DeliveryDatesPage from "./pages/DeliveryDates";
 import "./index.css";
 
 export default function App() {
@@ -16,15 +15,6 @@ export default function App() {
           element={
             <ProtectedRoute>
               <DashboardPage />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/delivery-dates"
-          element={
-            <ProtectedRoute>
-              <DeliveryDatesPage />
             </ProtectedRoute>
           }
         />

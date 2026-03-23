@@ -32,7 +32,6 @@ import type {
   AdminDeliveryDate,
 } from "../types";
 
-import { Link } from "react-router-dom"
 
 type TabKey = "orders" | "products" | "delivery";
 
@@ -550,10 +549,6 @@ export default function DashboardPage() {
             >
               {clearLoading ? "Очистка..." : "Очистить корзины"}
             </button>
-
-            <Link to="/delivery-dates" className="btn btn-secondary">
-                Даты доставки
-            </Link>
           </div>
         </div>
 
@@ -1097,10 +1092,8 @@ export default function DashboardPage() {
               </table>
             </div>
           </div>
-        </>
-      )}
 
-      <div className="card">
+          <div className="card">
         <h2>Добавить дату доставки</h2>
 
         <form className="form-grid" onSubmit={handleCreateDeliveryDate}>
@@ -1186,6 +1179,8 @@ export default function DashboardPage() {
                 </table>
             </div>
             </div>
+        </>
+      )}
 
         {editingPoint && (
         <div className="modal-overlay" onClick={() => setEditingPoint(null)}>
