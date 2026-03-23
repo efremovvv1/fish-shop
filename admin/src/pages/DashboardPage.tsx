@@ -103,27 +103,21 @@ export default function DashboardPage() {
     place: "",
     active: true,
     notes: "",
+    delivery_date: "",
   });
 
-  const [deliveryDateForm, setDeliveryDateForm] = useState({
-    city: "",
-    delivery_date: "",
-    active: true,
-   });
-
-  const loadData = async () => {
+    const loadData = async () => {
     setLoading(true);
     setError("");
 
     try {
-        const [statusRes, cartsRes, totalsRes, productsRes, pointsRes, datesRes] =
+        const [statusRes, cartsRes, totalsRes, productsRes, pointsRes] =
         await Promise.all([
             getAdminShopStatus(),
             getAdminCarts(),
             getAdminProductTotals(),
             getAdminProducts(),
             getAdminDeliveryPoints(),
-            getAdminDeliveryDates(),
         ]);
 
         setShopStatus(statusRes.status);
@@ -131,14 +125,21 @@ export default function DashboardPage() {
         setProductTotals(totalsRes);
         setProducts(productsRes);
         setDeliveryPoints(pointsRes);
+
+        try {
+        const datesRes = await getAdminDeliveryDates();
         setDeliveryDates(datesRes);
+        } catch (err) {
+        console.error("Не удалось загрузить даты доставки", err);
+        setDeliveryDates([]);
+        }
     } catch (err) {
         console.error(err);
         setError("Не удалось загрузить данные админки");
     } finally {
         setLoading(false);
     }
-    };
+};
 
   useEffect(() => {
     loadData();
@@ -300,55 +301,60 @@ export default function DashboardPage() {
     });
   };
 
-  const handleCreatePoint = async (e: React.FormEvent) => {
-    e.preventDefault();
+    const handleCreatePoint = async (e: React.FormEvent) => {
+        e.preventDefault();
 
-    try {
-      await createAdminDeliveryPoint({
-        city: pointForm.city.trim(),
-        place: pointForm.place.trim(),
-        active: pointForm.active,
-        notes: pointForm.notes.trim(),
-      });
+        const city = pointForm.city.trim();
+        const place = pointForm.place.trim();
+        const notes = pointForm.notes.trim();
+        const deliveryDate = pointForm.delivery_date;
 
-      setPointForm({
-        city: "",
-        place: "",
-        active: true,
-        notes: "",
-      });
+        if (!city || !place || !deliveryDate) {
+            alert("Заполните город, точку выдачи и дату доставки");
+            return;
+        }
 
-      await loadData();
-      showCopyMessage("Точка выдачи добавлена");
-    } catch (err) {
-      console.error(err);
-      alert("Не удалось добавить точку выдачи");
-    }
-  };
+        try {
+            await createAdminDeliveryPoint({
+            city,
+            place,
+            active: pointForm.active,
+            notes,
+            });
 
-  const handleCreateDeliveryDate = async (e: React.FormEvent) => {
-    e.preventDefault();
+            const existingDate = deliveryDates.find(
+                (item) => item.city.trim().toLowerCase() === city.toLowerCase()
+                );
 
-  try {
-    await createAdminDeliveryDate({
-      city: deliveryDateForm.city.trim(),
-      delivery_date: deliveryDateForm.delivery_date,
-      active: deliveryDateForm.active,
-    });
+                if (!existingDate) {
+                await createAdminDeliveryDate({
+                    city,
+                    delivery_date: deliveryDate,
+                    active: pointForm.active,
+                });
+                }
 
-    setDeliveryDateForm({
-      city: "",
-      delivery_date: "",
-      active: true,
-    });
+            await createAdminDeliveryDate({
+            city,
+            delivery_date: deliveryDate,
+            active: pointForm.active,
+            });
 
-    await loadData();
-    showCopyMessage("Дата доставки добавлена");
-  } catch (err) {
-    console.error(err);
-    alert("Не удалось добавить дату доставки");
-  }
-};
+            setPointForm({
+            city: "",
+            place: "",
+            active: true,
+            notes: "",
+            delivery_date: "",
+            });
+
+            await loadData();
+            showCopyMessage("Точка выдачи и дата доставки добавлены");
+        } catch (err) {
+            console.error(err);
+            alert("Не удалось добавить точку выдачи");
+        }
+    };
 
     const handleDeleteDeliveryDate = async (id: number, city: string, date: string) => {
         const ok = window.confirm(`Удалить дату ${date} для города "${city}"?`);
@@ -981,41 +987,56 @@ export default function DashboardPage() {
             <h2>Добавить точку выдачи</h2>
 
             <form className="form-grid" onSubmit={handleCreatePoint}>
-              <input
+            <input
                 className="input"
                 placeholder="Город"
                 value={pointForm.city}
                 onChange={(e) => setPointForm((prev) => ({ ...prev, city: e.target.value }))}
                 required
-              />
-              <input
+            />
+
+            <input
                 className="input"
                 placeholder="Точка выдачи"
                 value={pointForm.place}
                 onChange={(e) => setPointForm((prev) => ({ ...prev, place: e.target.value }))}
                 required
-              />
-              <input
+            />
+
+            <input
                 className="input form-span"
                 placeholder="Комментарий"
                 value={pointForm.notes}
                 onChange={(e) => setPointForm((prev) => ({ ...prev, notes: e.target.value }))}
-              />
+            />
 
-              <label className="checkbox-row form-span">
+            <input
+                className="input"
+                type="date"
+                value={pointForm.delivery_date}
+                onChange={(e) =>
+                setPointForm((prev) => ({
+                    ...prev,
+                    delivery_date: e.target.value,
+                }))
+                }
+                required
+            />
+
+            <label className="checkbox-row form-span">
                 <input
-                  type="checkbox"
-                  checked={pointForm.active}
-                  onChange={(e) =>
+                type="checkbox"
+                checked={pointForm.active}
+                onChange={(e) =>
                     setPointForm((prev) => ({ ...prev, active: e.target.checked }))
-                  }
+                }
                 />
                 Активна
-              </label>
+            </label>
 
-              <button className="btn btn-primary form-span" type="submit">
+            <button className="btn btn-primary form-span" type="submit">
                 Добавить точку выдачи
-              </button>
+            </button>
             </form>
           </div>
 
@@ -1092,53 +1113,6 @@ export default function DashboardPage() {
               </table>
             </div>
           </div>
-
-          <div className="card">
-        <h2>Добавить дату доставки</h2>
-
-        <form className="form-grid" onSubmit={handleCreateDeliveryDate}>
-            <input
-            className="input"
-            placeholder="Город"
-            value={deliveryDateForm.city}
-            onChange={(e) =>
-                setDeliveryDateForm((prev) => ({ ...prev, city: e.target.value }))
-            }
-            required
-            />
-
-            <input
-            className="input"
-            type="date"
-            value={deliveryDateForm.delivery_date}
-            onChange={(e) =>
-                setDeliveryDateForm((prev) => ({
-                ...prev,
-                delivery_date: e.target.value,
-                }))
-            }
-            required
-            />
-
-            <label className="checkbox-row form-span">
-            <input
-                type="checkbox"
-                checked={deliveryDateForm.active}
-                onChange={(e) =>
-                setDeliveryDateForm((prev) => ({
-                    ...prev,
-                    active: e.target.checked,
-                }))
-                }
-            />
-            Активна
-            </label>
-
-            <button className="btn btn-primary form-span" type="submit">
-            Добавить дату доставки
-            </button>
-        </form>
-        </div>
 
         <div className="card">
             <h2>Даты доставки</h2>
