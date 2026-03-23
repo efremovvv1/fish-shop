@@ -1034,19 +1034,6 @@ const openEditPoint = (point: AdminDeliveryPoint) => {
                 required
             />
 
-                <input
-                className="input"
-                type="date"
-                value={editPointForm.delivery_date}
-                onChange={(e) =>
-                    setEditPointForm((prev) => ({
-                    ...prev,
-                    delivery_date: e.target.value,
-                    }))
-                }
-                required
-                />
-
             <label className="checkbox-row form-span">
                 <input
                 type="checkbox"
@@ -1221,6 +1208,19 @@ const openEditPoint = (point: AdminDeliveryPoint) => {
                   setEditPointForm((prev) => ({ ...prev, notes: e.target.value }))
                 }
               />
+
+                <input
+                className="input"
+                type="date"
+                value={editPointForm.delivery_date}
+                onChange={(e) =>
+                    setEditPointForm((prev) => ({
+                    ...prev,
+                    delivery_date: e.target.value,
+                    }))
+                }
+                required
+                />
 
               <label className="checkbox-row form-span">
                 <input
