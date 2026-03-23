@@ -328,3 +328,18 @@ export async function deleteAdminDeliveryDate(id: number) {
   });
   return res.data;
 }
+
+export async function upsertAdminDeliveryDateByCity(payload: {
+  city: string;
+  delivery_date: string;
+  active: boolean;
+}) {
+  const res = await api.put<AdminDeliveryDate>(
+    "/admin/delivery-dates/by-city",
+    payload,
+    {
+      headers: authHeaders(),
+    }
+  );
+  return res.data;
+}

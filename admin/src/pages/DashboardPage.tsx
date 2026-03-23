@@ -20,8 +20,8 @@ import {
   clearAdminCarts,
   downloadClientFormatExcel,
   getAdminDeliveryDates,
-  createAdminDeliveryDate,
   deleteAdminDeliveryDate,
+  upsertAdminDeliveryDateByCity,
 } from "../api/client";
 import type {
   AdminCart,
@@ -78,6 +78,7 @@ export default function DashboardPage() {
     place: "",
     active: true,
     notes: "",
+    delivery_date: "",
   });
 
   const [productForm, setProductForm] = useState({
@@ -322,19 +323,7 @@ export default function DashboardPage() {
             notes,
             });
 
-            const existingDate = deliveryDates.find(
-                (item) => item.city.trim().toLowerCase() === city.toLowerCase()
-                );
-
-                if (!existingDate) {
-                await createAdminDeliveryDate({
-                    city,
-                    delivery_date: deliveryDate,
-                    active: pointForm.active,
-                });
-                }
-
-            await createAdminDeliveryDate({
+            await upsertAdminDeliveryDateByCity({
             city,
             delivery_date: deliveryDate,
             active: pointForm.active,
@@ -354,7 +343,7 @@ export default function DashboardPage() {
             console.error(err);
             alert("Не удалось добавить точку выдачи");
         }
-    };
+        };
 
     const handleDeleteDeliveryDate = async (id: number, city: string, date: string) => {
         const ok = window.confirm(`Удалить дату ${date} для города "${city}"?`);
@@ -403,37 +392,59 @@ export default function DashboardPage() {
     }
   };
 
-  const openEditPoint = (point: AdminDeliveryPoint) => {
-    setEditingPoint(point);
-    setEditPointForm({
-      city: point.city,
-      place: point.place,
-      active: point.active,
-      notes: point.notes || "",
-    });
-  };
+const openEditPoint = (point: AdminDeliveryPoint) => {
+  setEditingPoint(point);
+
+  const existingDate = deliveryDates.find(
+    (d) => d.city.trim().toLowerCase() === point.city.trim().toLowerCase()
+  );
+
+  setEditPointForm({
+    city: point.city,
+    place: point.place,
+    active: point.active,
+    notes: point.notes || "",
+    delivery_date: existingDate?.delivery_date || "",
+  });
+};
 
   const handleUpdatePoint = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!editingPoint) return;
 
-    try {
-      await updateAdminDeliveryPoint(editingPoint.id, {
-        city: editPointForm.city.trim(),
-        place: editPointForm.place.trim(),
-        active: editPointForm.active,
-        notes: editPointForm.notes.trim(),
-      });
+    const city = editPointForm.city.trim();
+    const place = editPointForm.place.trim();
+    const notes = editPointForm.notes.trim();
+    const deliveryDate = editPointForm.delivery_date;
 
-      setEditingPoint(null);
-      await loadData();
-      showCopyMessage("Точка выдачи обновлена");
-    } catch (err) {
-      console.error(err);
-      alert("Не удалось обновить точку выдачи");
+    if (!city || !place || !deliveryDate) {
+        alert("Заполните город, точку выдачи и дату доставки");
+        return;
     }
-  };
+
+    try {
+        await updateAdminDeliveryPoint(editingPoint.id, {
+        city,
+        place,
+        active: editPointForm.active,
+        notes,
+        });
+
+        await upsertAdminDeliveryDateByCity({
+        city,
+        delivery_date: deliveryDate,
+        active: editPointForm.active,
+        });
+
+        setEditingPoint(null);
+        await loadData();
+        showCopyMessage("Точка выдачи обновлена");
+    } catch (err) {
+        console.error(err);
+        alert("Не удалось обновить точку выдачи");
+    }
+    };
 
     const handleUploadNewProductImage = async (
     e: React.ChangeEvent<HTMLInputElement>
@@ -1022,6 +1033,19 @@ export default function DashboardPage() {
                 }
                 required
             />
+
+                <input
+                className="input"
+                type="date"
+                value={editPointForm.delivery_date}
+                onChange={(e) =>
+                    setEditPointForm((prev) => ({
+                    ...prev,
+                    delivery_date: e.target.value,
+                    }))
+                }
+                required
+                />
 
             <label className="checkbox-row form-span">
                 <input
