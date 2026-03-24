@@ -17,10 +17,13 @@ export type Product = {
 };
 
 export type DeliveryPoint = {
+  id: number;
   city: string;
   place: string;
   active: boolean;
-  notes?: string;
+  notes?: string | null;
+  delivery_date?: string | null;
+  approx_time?: string | null;
 };
 
 export type CartItemDraft = {

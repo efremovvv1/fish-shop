@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
-import { api, saveServerCart, submitServerOrder, getDeliveryDates } from "../api/client";
+import { api, saveServerCart, submitServerOrder} from "../api/client";
 import { useCartStore } from "../store/cart";
-import type { DeliveryPoint, DeliveryDate } from "../types";
+import type { DeliveryPoint } from "../types";
 import { getTelegramUser } from "../lib/telegram";
 
 type Props = {
@@ -27,7 +27,6 @@ export default function CheckoutModal({
   const canEdit = useCartStore((state) => state.canEdit());
 
   const [deliveryPoints, setDeliveryPoints] = useState<DeliveryPoint[]>([]);
-  const [deliveryDates, setDeliveryDates] = useState<DeliveryDate[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
   const tg = useMemo(() => getTelegramUser(), []);
@@ -46,18 +45,6 @@ export default function CheckoutModal({
     }, [open, tg, setCheckoutFields, checkout.customerName]);
 
    useEffect(() => {
-    if (!checkout.city) {
-        setDeliveryDates([]);
-        setCheckoutField("deliveryDate", "");
-        return;
-    }
-
-    getDeliveryDates(checkout.city).then((data) => {
-        setDeliveryDates(data);
-    });
-    }, [checkout.city, setCheckoutField]);
-
-   useEffect(() => {
     if (!open) return;
 
     api.get<DeliveryPoint[]>("/delivery-points").then((res) => {
@@ -68,6 +55,9 @@ export default function CheckoutModal({
   const filteredPoints = checkout.city
     ? deliveryPoints.filter((p) => p.city === checkout.city)
     : deliveryPoints;
+
+  const selectedPoint =
+    filteredPoints.find((point) => point.place === checkout.deliveryPoint) || null;
 
   const cities = [...new Set(deliveryPoints.map((p) => p.city))];
 
@@ -205,13 +195,27 @@ export default function CheckoutModal({
             onChange={(e) => setCheckoutField("deliveryDate", e.target.value)}
             style={inputStyle}
             >
-            <option value="">Выберите дату доставки</option>
-            {deliveryDates.map((item) => (
-                <option key={item.id} value={item.delivery_date}>
-                {item.delivery_date}
-                </option>
-            ))}
             </select>
+
+            {selectedPoint && (
+            <div
+                style={{
+                background: "#1d1d22",
+                border: "1px solid #2a2a30",
+                borderRadius: 14,
+                padding: 14,
+                color: "#d1d5db",
+                lineHeight: 1.5,
+                }}
+            >
+                <div>
+                <strong>Дата выдачи:</strong> {selectedPoint.delivery_date || "—"}
+                </div>
+                <div>
+                <strong>Примерное время:</strong> {selectedPoint.approx_time || "—"}
+                </div>
+            </div>
+            )}
 
           <select
             value={checkout.city}
@@ -232,9 +236,15 @@ export default function CheckoutModal({
 
           <select
             value={checkout.deliveryPoint}
-            onChange={(e) => setCheckoutField("deliveryPoint", e.target.value)}
+            onChange={(e) => {
+                const pointValue = e.target.value;
+                const point = filteredPoints.find((p) => p.place === pointValue) || null;
+
+                setCheckoutField("deliveryPoint", pointValue);
+                setCheckoutField("deliveryDate", point?.delivery_date || "");
+            }}
             style={inputStyle}
-          >
+            >
 
             <option value="">Выберите точку выдачи</option>
             {filteredPoints.map((point) => (
