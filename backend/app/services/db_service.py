@@ -306,7 +306,7 @@ class DBService:
         product.image_url = payload.image_url or ""
         product.short_description = payload.short_description or ""
         product.description = payload.description or ""
-        product.active = "true" if payload.active else "false"
+        product.active =payload.active
 
         self.db.commit()
         self.db.refresh(product)
@@ -359,7 +359,7 @@ class DBService:
                 "image_url": p.image_url or "",
                 "short_description": p.short_description or "",
                 "description": p.description or "",
-                "active": p.active == "true",
+                "active": p.active,
             }
             for p in products
         ]
@@ -374,7 +374,7 @@ class DBService:
                 "id": p.id,
                 "city": p.city,
                 "place": p.place,
-                "active": p.active == "true",
+                "active": p.active,
                 "notes": p.notes or "",
                 "delivery_date": p.delivery_date.isoformat() if p.delivery_date else None,
                 "approx_time": p.approx_time or None,
@@ -399,7 +399,7 @@ class DBService:
             step=payload.step,
             available_qty=payload.available_qty,
             notes=payload.notes or "",
-            active="true" if payload.active else "false",
+            active=payload.active,
         )
         self.db.add(product)
         self.db.commit()
@@ -425,7 +425,7 @@ class DBService:
         point = DeliveryPointModel(
             city=payload.city.strip(),
             place=payload.place.strip(),
-            active="true" if payload.active else "false",
+            active=payload.active,
             notes=(payload.notes or "").strip(),
             delivery_date=payload.delivery_date,
             approx_time=(payload.approx_time or "").strip() or None,
@@ -438,7 +438,7 @@ class DBService:
             "id": point.id,
             "city": point.city,
             "place": point.place,
-            "active": point.active == "true",
+            "active": point.active,
             "notes": point.notes or "",
             "delivery_date": point.delivery_date.isoformat() if point.delivery_date else None,
             "approx_time": point.approx_time or None,
@@ -449,7 +449,7 @@ class DBService:
         if not product:
             raise HTTPException(status_code=404, detail="Product not found")
 
-        product.active = "false" if product.active == "true" else "true"
+        product.active = not product.active
         self.db.commit()
         self.db.refresh(product)
 
@@ -466,7 +466,7 @@ class DBService:
             "step": float(product.step),
             "available_qty": float(product.available_qty),
             "notes": product.notes or "",
-            "active": product.active == "true",
+            "active": product.active,
         }
     
     def update_delivery_point(self, point_id: int, payload):
@@ -476,7 +476,7 @@ class DBService:
 
         point.city = payload.city.strip()
         point.place = payload.place.strip()
-        point.active = "true" if payload.active else "false"
+        point.active = payload.active
         point.notes = (payload.notes or "").strip()
         point.delivery_date = payload.delivery_date
         point.approx_time = (payload.approx_time or "").strip() or None
@@ -488,7 +488,7 @@ class DBService:
             "id": point.id,
             "city": point.city,
             "place": point.place,
-            "active": point.active == "true",
+            "active": point.active,
             "notes": point.notes or "",
             "delivery_date": point.delivery_date.isoformat() if point.delivery_date else None,
             "approx_time": point.approx_time or None,
@@ -596,7 +596,7 @@ class DBService:
         if not point:
             raise HTTPException(status_code=404, detail="Delivery point not found")
 
-        point.active = "false" if point.active == "true" else "true"
+        point.active = not point.active
         self.db.commit()
         self.db.refresh(point)
 
@@ -604,7 +604,7 @@ class DBService:
             "id": point.id,
             "city": point.city,
             "place": point.place,
-            "active": point.active == "true",
+            "active": point.active,
             "notes": point.notes or "",
             "delivery_date": point.delivery_date.isoformat() if point.delivery_date else None,
             "approx_time": point.approx_time or None,
