@@ -73,10 +73,15 @@ export default function CheckoutModal({
       return;
     }
 
-    if (!checkout.deliveryDate) {
-        alert("Выберите дату доставки");
+    if (!selectedPoint) {
+        alert("Выберите точку выдачи");
         return;
-    }
+        }
+
+    if (!selectedPoint.delivery_date) {
+        alert("Для выбранной точки пока нет даты доставки");
+        return;
+        }
 
     if(!checkout.city){
         alert("Выберите город")
@@ -189,82 +194,90 @@ export default function CheckoutModal({
             onChange={(e) => setCheckoutField("phone", e.target.value)}
             style={inputStyle}
           />
-
-          <select
-            value={checkout.deliveryDate}
-            onChange={(e) => setCheckoutField("deliveryDate", e.target.value)}
-            style={inputStyle}
-            >
-            </select>
-
-            {selectedPoint && (
-            <div
-                style={{
-                background: "#1d1d22",
-                border: "1px solid #2a2a30",
-                borderRadius: 14,
-                padding: 14,
-                color: "#d1d5db",
-                lineHeight: 1.5,
+                <select
+                value={checkout.city}
+                onChange={(e) => {
+                    setCheckoutField("city", e.target.value);
+                    setCheckoutField("deliveryPoint", "");
+                    setCheckoutField("deliveryDate", "");
                 }}
-            >
-                <div>
-                <strong>Дата выдачи:</strong> {selectedPoint.delivery_date || "—"}
-                </div>
-                <div>
-                <strong>Примерное время:</strong> {selectedPoint.approx_time || "—"}
-                </div>
-            </div>
-            )}
+                style={inputStyle}
+                >
+                <option value="">Выберите город</option>
+                {cities.map((city) => (
+                    <option key={city} value={city}>
+                    {city}
+                    </option>
+                ))}
+                </select>
 
-          <select
-            value={checkout.city}
-            onChange={(e) => {
-              setCheckoutField("city", e.target.value);
-              setCheckoutField("deliveryPoint", "");
-              setCheckoutField("deliveryDate", "");
-            }}
-            style={inputStyle}
-          >
-            <option value="">Выберите город</option>
-            {cities.map((city) => (
-              <option key={city} value={city}>
-                {city}
-              </option>
-            ))}
-          </select>
+                <select
+                value={checkout.deliveryPoint}
+                onChange={(e) => {
+                    const pointValue = e.target.value;
+                    const point = filteredPoints.find((p) => p.place === pointValue) || null;
 
-          <select
-            value={checkout.deliveryPoint}
-            onChange={(e) => {
-                const pointValue = e.target.value;
-                const point = filteredPoints.find((p) => p.place === pointValue) || null;
-
-                setCheckoutField("deliveryPoint", pointValue);
-                setCheckoutField("deliveryDate", point?.delivery_date || "");
-            }}
-            style={inputStyle}
-            >
-
-            <option value="">Выберите точку выдачи</option>
-            {filteredPoints.map((point) => (
-              <option key={`${point.city}-${point.place}`} value={point.place}>
-                {point.place}
-              </option>
-            ))}
-          </select>
-          {checkout.deliveryPoint && (
-            <div
-                style={{
-                fontSize: 13,
-                color: "#9ca3af",
-                lineHeight: 1.4,
-                marginTop: -2,
+                    setCheckoutField("deliveryPoint", pointValue);
+                    setCheckoutField("deliveryDate", point?.delivery_date || "");
                 }}
-            >
-                {filteredPoints.find((point) => point.place === checkout.deliveryPoint)?.notes || ""}
-            </div>
-            )}
+                style={inputStyle}
+                disabled={!checkout.city}
+                >
+                <option value="">Выберите точку выдачи</option>
+                {filteredPoints.map((point) => (
+                    <option key={`${point.city}-${point.place}`} value={point.place}>
+                    {point.place}
+                    </option>
+                ))}
+                </select>
+
+                {checkout.deliveryPoint && (
+                <div
+                    style={{
+                    fontSize: 13,
+                    color: "#9ca3af",
+                    lineHeight: 1.4,
+                    marginTop: -2,
+                    }}
+                >
+                    {filteredPoints.find((point) => point.place === checkout.deliveryPoint)?.notes || ""}
+                </div>
+                )}
+
+                {selectedPoint ? (
+                selectedPoint.delivery_date ? (
+                    <div
+                    style={{
+                        background: "#1d1d22",
+                        border: "1px solid #2a2a30",
+                        borderRadius: 14,
+                        padding: 14,
+                        color: "#d1d5db",
+                        lineHeight: 1.5,
+                    }}
+                    >
+                    <div>
+                        <strong>Дата выдачи:</strong> {selectedPoint.delivery_date}
+                    </div>
+                    <div>
+                        <strong>Примерное время:</strong> {selectedPoint.approx_time || "—"}
+                    </div>
+                    </div>
+                ) : (
+                    <div
+                    style={{
+                        background: "#2a1f1f",
+                        border: "1px solid #5b2c2c",
+                        borderRadius: 14,
+                        padding: 14,
+                        color: "#fca5a5",
+                        lineHeight: 1.5,
+                    }}
+                    >
+                    Для этой точки пока нет даты доставки.
+                    </div>
+                )
+                ) : null}
           
           <textarea
             placeholder="Комментарий"

@@ -268,6 +268,6 @@ class DeliveryDateResponse(BaseModel):
     approx_time: str | None = None
     active: bool
 
-    class Config:
-        from_attributes = True
+class Config:
+    from_attributes = True
 
