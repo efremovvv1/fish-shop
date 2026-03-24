@@ -106,7 +106,7 @@ export default function CheckoutModal({
         phone: checkout.phone,
         city: checkout.city,
         delivery_point: checkout.deliveryPoint,
-        delivery_date: checkout.deliveryDate,
+        delivery_date: selectedPoint?.delivery_date || undefined,
         comment: checkout.comment,
         items: items.map((item) => ({
           sku: item.sku,
@@ -230,19 +230,6 @@ export default function CheckoutModal({
                     </option>
                 ))}
                 </select>
-
-                {checkout.deliveryPoint && (
-                <div
-                    style={{
-                    fontSize: 13,
-                    color: "#9ca3af",
-                    lineHeight: 1.4,
-                    marginTop: -2,
-                    }}
-                >
-                    {filteredPoints.find((point) => point.place === checkout.deliveryPoint)?.notes || ""}
-                </div>
-                )}
 
                 {selectedPoint ? (
                 selectedPoint.delivery_date ? (
