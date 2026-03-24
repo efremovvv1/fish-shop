@@ -72,6 +72,8 @@ export type AdminDeliveryPoint = {
   place: string;
   active: boolean;
   notes?: string;
+  delivery_date?: string | null;
+  approx_time?: string | null;
 };
 
 export type AdminDeliveryDate = {

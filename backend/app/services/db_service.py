@@ -86,22 +86,23 @@ class DBService:
             self.db.commit()
             self.db.refresh(cart)
 
-        return CartResponse(
-            telegram_user_id=user.telegram_user_id,
-            telegram_username=user.telegram_username or "",
-            customer_name=cart.customer_name or "",
-            phone=cart.phone or "",
-            city=cart.city or "",
-            delivery_point=cart.delivery_point or "",
-            comment=cart.comment or "",
-            items=[
-                {"sku": item.sku, "qty": float(item.qty)}
-                for item in cart.items
-            ],
-            status=cart.status,
-            updated_at=cart.updated_at.isoformat() if cart.updated_at else None,
-            submitted_at=cart.submitted_at.isoformat() if cart.submitted_at else None,
-        )
+            return CartResponse(
+                telegram_user_id=user.telegram_user_id,
+                telegram_username=user.telegram_username or "",
+                customer_name=cart.customer_name or "",
+                phone=cart.phone or "",
+                city=cart.city or "",
+                delivery_point=cart.delivery_point or "",
+                delivery_date=cart.delivery_date.isoformat() if cart.delivery_date else "",
+                comment=cart.comment or "",
+                items=[
+                    {"sku": item.sku, "qty": float(item.qty)}
+                    for item in cart.items
+                ],
+                status=cart.status,
+                updated_at=cart.updated_at.isoformat() if cart.updated_at else None,
+                submitted_at=cart.submitted_at.isoformat() if cart.submitted_at else None,
+            )
 
     def upsert_cart(self, tg_user: TelegramUser, payload: CartUpsertRequest) -> CartResponse:
         self.ensure_shop_is_open()
@@ -182,10 +183,13 @@ class DBService:
         self.db.commit()
     
     def get_all_carts(self, delivery_date=None):
-        carts = self.db.query(Cart).join(User, Cart.user_id == User.id).all()
-        products_map = {p.sku: p for p in self.db.query(Product).all()}
+        query = self.db.query(Cart).join(User, Cart.user_id == User.id)
+
         if delivery_date:
             query = query.filter(Cart.delivery_date == delivery_date)
+
+        carts = query.all()
+        products_map = {p.sku: p for p in self.db.query(Product).all()}
 
         result = []
         for cart in carts:
@@ -198,6 +202,7 @@ class DBService:
                 "phone": cart.phone or "",
                 "city": cart.city or "",
                 "delivery_point": cart.delivery_point or "",
+                "delivery_date": cart.delivery_date.isoformat() if cart.delivery_date else "",
                 "comment": cart.comment or "",
                 "status": cart.status,
                 "updated_at": cart.updated_at.isoformat() if cart.updated_at else None,
@@ -258,6 +263,7 @@ class DBService:
             "phone": cart.phone or "",
             "city": cart.city or "",
             "delivery_point": cart.delivery_point or "",
+            "delivery_date": cart.delivery_date.isoformat() if cart.delivery_date else "",
             "comment": cart.comment or "",
             "status": cart.status,
             "updated_at": cart.updated_at.isoformat() if cart.updated_at else None,
@@ -370,6 +376,8 @@ class DBService:
                 "place": p.place,
                 "active": p.active == "true",
                 "notes": p.notes or "",
+                "delivery_date": p.delivery_date.isoformat() if p.delivery_date else None,
+                "approx_time": p.approx_time or None,
             }
             for p in points
         ]
@@ -415,10 +423,12 @@ class DBService:
 
     def create_delivery_point(self, payload):
         point = DeliveryPointModel(
-            city=payload.city,
-            place=payload.place,
+            city=payload.city.strip(),
+            place=payload.place.strip(),
             active="true" if payload.active else "false",
-            notes=payload.notes or "",
+            notes=(payload.notes or "").strip(),
+            delivery_date=payload.delivery_date,
+            approx_time=(payload.approx_time or "").strip() or None,
         )
         self.db.add(point)
         self.db.commit()
@@ -430,6 +440,8 @@ class DBService:
             "place": point.place,
             "active": point.active == "true",
             "notes": point.notes or "",
+            "delivery_date": point.delivery_date.isoformat() if point.delivery_date else None,
+            "approx_time": point.approx_time or None,
         }
 
     def toggle_product_active(self, product_id: int):
@@ -462,10 +474,12 @@ class DBService:
         if not point:
             raise HTTPException(status_code=404, detail="Delivery point not found")
 
-        point.city = payload.city
-        point.place = payload.place
+        point.city = payload.city.strip()
+        point.place = payload.place.strip()
         point.active = "true" if payload.active else "false"
-        point.notes = payload.notes or ""
+        point.notes = (payload.notes or "").strip()
+        point.delivery_date = payload.delivery_date
+        point.approx_time = (payload.approx_time or "").strip() or None
 
         self.db.commit()
         self.db.refresh(point)
@@ -476,6 +490,8 @@ class DBService:
             "place": point.place,
             "active": point.active == "true",
             "notes": point.notes or "",
+            "delivery_date": point.delivery_date.isoformat() if point.delivery_date else None,
+            "approx_time": point.approx_time or None,
         }
     
     def delete_delivery_point(self, point_id: int):
@@ -590,6 +606,8 @@ class DBService:
             "place": point.place,
             "active": point.active == "true",
             "notes": point.notes or "",
+            "delivery_date": point.delivery_date.isoformat() if point.delivery_date else None,
+            "approx_time": point.approx_time or None,
         }
     
     def clear_all_carts(self):

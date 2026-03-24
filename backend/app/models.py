@@ -128,7 +128,7 @@ class Product(Base):
     step = Column(Numeric(10, 2), default=1, nullable=False)
     available_qty = Column(Numeric(10, 2), default=0, nullable=False)
     notes = Column(Text, default="", nullable=False)
-    active = Column(Boolean, default="true", nullable=False)
+    active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     image_url = Column(Text, default="", nullable=False)
     short_description = Column(Text, default="", nullable=False)
@@ -144,8 +144,10 @@ class DeliveryPointModel(Base):
     id = Column(Integer, primary_key=True, index=True)
     city = Column(String, nullable=False, index=True)
     place = Column(String, nullable=False)
-    active = Column(Boolean, default="true", nullable=False)
+    active = Column(Boolean, default=True, nullable=False)
     notes = Column(Text, default="", nullable=False)
+    delivery_date = Column(Date, nullable=True)
+    approx_time=Column(String(32), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 class DeliveryDate(Base):

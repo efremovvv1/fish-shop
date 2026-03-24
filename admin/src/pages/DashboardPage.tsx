@@ -19,10 +19,6 @@ import {
   uploadAdminProductImage,
   clearAdminCarts,
   downloadClientFormatExcel,
-  getAdminPointDates,
-  createAdminPointDate,
-  updateAdminDeliveryDate,
-  deleteAdminDeliveryDate,
 } from "../api/client";
 import type {
   AdminCart,
@@ -30,7 +26,6 @@ import type {
   AdminProduct,
   AdminProductTotal,
   ShopStatus,
-  AdminDeliveryDate,
 } from "../types";
 
 
@@ -78,6 +73,8 @@ export default function DashboardPage() {
     place: "",
     active: true,
     notes: "",
+    delivery_date: "",
+    approx_time: "",
   });
 
   const [productForm, setProductForm] = useState({
@@ -103,24 +100,9 @@ export default function DashboardPage() {
     place: "",
     active: true,
     notes: "",
+    delivery_date: "",
+    approx_time: "",
   });
-
-  const [selectedPoint, setSelectedPoint] = useState<AdminDeliveryPoint | null>(null);
-const [pointDates, setPointDates] = useState<AdminDeliveryDate[]>([]);
-const [datesLoading, setDatesLoading] = useState(false);
-
-const [dateForm, setDateForm] = useState({
-  delivery_date: "",
-  approx_time: "",
-  active: true,
-});
-
-const [editingDate, setEditingDate] = useState<AdminDeliveryDate | null>(null);
-const [editDateForm, setEditDateForm] = useState({
-  delivery_date: "",
-  approx_time: "",
-  active: true,
-});
 
 const loadData = async () => {
   setLoading(true);
@@ -316,8 +298,8 @@ const loadData = async () => {
         const place = pointForm.place.trim();
         const notes = pointForm.notes.trim();
 
-        if (!city || !place) {
-            alert("Заполните город и точку выдачи");
+        if (!city || !place || !pointForm.delivery_date) {
+            alert("Заполните город, точку выдачи и дату выдачи");
             return;
         }
 
@@ -327,6 +309,8 @@ const loadData = async () => {
             place,
             active: pointForm.active,
             notes,
+            delivery_date: pointForm.delivery_date,
+            approx_time: pointForm.approx_time.trim() || undefined,
             });
 
             setPointForm({
@@ -334,6 +318,8 @@ const loadData = async () => {
             place: "",
             active: true,
             notes: "",
+            delivery_date: "",
+            approx_time: "",
             });
 
             await loadData();
@@ -384,6 +370,8 @@ const openEditPoint = (point: AdminDeliveryPoint) => {
     place: point.place,
     active: point.active,
     notes: point.notes || "",
+    delivery_date: point.delivery_date || "",
+    approx_time: point.approx_time || "",
   });
 };
 
@@ -396,8 +384,8 @@ const openEditPoint = (point: AdminDeliveryPoint) => {
     const place = editPointForm.place.trim();
     const notes = editPointForm.notes.trim();
 
-    if (!city || !place) {
-        alert("Заполните город и точку выдачи");
+    if (!city || !place || !editPointForm.delivery_date) {
+        alert("Заполните город, точку выдачи и дату выдачи");
         return;
     }
 
@@ -407,6 +395,8 @@ const openEditPoint = (point: AdminDeliveryPoint) => {
         place,
         active: editPointForm.active,
         notes,
+        delivery_date: editPointForm.delivery_date,
+        approx_time: editPointForm.approx_time.trim() || undefined,
         });
 
         setEditingPoint(null);
@@ -418,120 +408,24 @@ const openEditPoint = (point: AdminDeliveryPoint) => {
     }
     };
 
-    const loadPointDates = async (pointId: number) => {
-  try {
-    setDatesLoading(true);
-    const data = await getAdminPointDates(pointId);
-    setPointDates(data);
-  } catch (err) {
-    console.error(err);
-    alert("Не удалось загрузить даты точки выдачи");
-    setPointDates([]);
-  } finally {
-    setDatesLoading(false);
-  }
-};
-
-const openPointDates = async (point: AdminDeliveryPoint) => {
-  setSelectedPoint(point);
-  await loadPointDates(point.id);
-};
-
-const handleCreatePointDate = async (e: React.FormEvent) => {
-  e.preventDefault();
-
-  if (!selectedPoint) return;
-
-  if (!dateForm.delivery_date) {
-    alert("Выберите дату выдачи");
-    return;
-  }
-
-  try {
-    await createAdminPointDate(selectedPoint.id, {
-      delivery_date: dateForm.delivery_date,
-      approx_time: dateForm.approx_time.trim() || undefined,
-      active: dateForm.active,
-    });
-
-    setDateForm({
-      delivery_date: "",
-      approx_time: "",
-      active: true,
-    });
-
-    await loadPointDates(selectedPoint.id);
-    showCopyMessage("Дата выдачи добавлена");
-  } catch (err) {
-    console.error(err);
-    alert("Не удалось добавить дату выдачи");
-  }
-};
-
-const openEditDate = (item: AdminDeliveryDate) => {
-  setEditingDate(item);
-  setEditDateForm({
-    delivery_date: item.delivery_date,
-    approx_time: item.approx_time || "",
-    active: item.active,
-  });
-};
-
-const handleUpdatePointDate = async (e: React.FormEvent) => {
-  e.preventDefault();
-
-  if (!editingDate || !selectedPoint) return;
-
-  try {
-    await updateAdminDeliveryDate(editingDate.id, {
-      delivery_date: editDateForm.delivery_date,
-      approx_time: editDateForm.approx_time.trim() || undefined,
-      active: editDateForm.active,
-    });
-
-    setEditingDate(null);
-    await loadPointDates(selectedPoint.id);
-    showCopyMessage("Дата выдачи обновлена");
-  } catch (err) {
-    console.error(err);
-    alert("Не удалось обновить дату выдачи");
-  }
-};
-
-const handleDeletePointDate = async (id: number, date: string) => {
-  if (!selectedPoint) return;
-
-  const ok = window.confirm(`Удалить дату ${date}?`);
-  if (!ok) return;
-
-  try {
-    await deleteAdminDeliveryDate(id);
-    await loadPointDates(selectedPoint.id);
-    showCopyMessage("Дата выдачи удалена");
-  } catch (err) {
-    console.error(err);
-    alert("Не удалось удалить дату выдачи");
-  }
-};
-
     const handleUploadNewProductImage = async (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+        e: React.ChangeEvent<HTMLInputElement>
+    ) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
 
-    try {
-      const res = await uploadAdminProductImage(file);
-      setProductForm((prev) => ({
-        ...prev,
-        image_url: res.image_url,
-      }));
-      showCopyMessage("Фото загружено");
-    } catch (err) {
-      console.error(err);
-      alert("Не удалось загрузить фото");
-    }
-  };
+        try {
+        const res = await uploadAdminProductImage(file);
+        setProductForm((prev) => ({
+            ...prev,
+            image_url: res.image_url,
+        }));
+        showCopyMessage("Фото загружено");
+        } catch (err) {
+        console.error(err);
+        alert("Не удалось загрузить фото");
+        }
+    };
 
   const handleUploadEditProductImage = async (
     e: React.ChangeEvent<HTMLInputElement>
@@ -1089,6 +983,25 @@ const handleDeletePointDate = async (id: number, date: string) => {
                 onChange={(e) => setPointForm((prev) => ({ ...prev, notes: e.target.value }))}
             />
 
+            <input
+                className="input"
+                type="date"
+                value={pointForm.delivery_date}
+                onChange={(e) =>
+                    setPointForm((prev) => ({ ...prev, delivery_date: e.target.value }))
+                }
+                required
+                />
+
+                <input
+                className="input"
+                placeholder="Примерное время, например 08:30"
+                value={pointForm.approx_time}
+                onChange={(e) =>
+                    setPointForm((prev) => ({ ...prev, approx_time: e.target.value }))
+                }
+                />
+
 
             <label className="checkbox-row form-span">
                 <input
@@ -1118,6 +1031,8 @@ const handleDeletePointDate = async (id: number, date: string) => {
                     <th>Город</th>
                     <th>Точка</th>
                     <th>Активна</th>
+                    <th>Дата выдачи</th>
+                    <th>Время</th>
                     <th></th>
                   </tr>
                 </thead>
@@ -1128,6 +1043,8 @@ const handleDeletePointDate = async (id: number, date: string) => {
                       <td>{point.city}</td>
                       <td>{point.place}</td>
                       <td>{point.active ? "Да" : "Нет"}</td>
+                      <td>{point.delivery_date || "—"}</td>
+                      <td>{point.approx_time || "—"}</td>
                       <td>
                         <div className="actions-row">
                           <button
@@ -1137,12 +1054,6 @@ const handleDeletePointDate = async (id: number, date: string) => {
                             Редактировать
                           </button>
 
-                          <button
-                            className="btn btn-secondary btn-small"
-                            onClick={() => openPointDates(point)}
-                            >
-                            Даты
-                          </button>
 
                           <button
                             className="btn btn-secondary btn-small"
@@ -1187,99 +1098,6 @@ const handleDeletePointDate = async (id: number, date: string) => {
               </table>
             </div>
           </div>
-            {selectedPoint && (
-            <div className="card">
-                <h2>
-                Даты выдачи: {selectedPoint.city} / {selectedPoint.place}
-                </h2>
-
-                <form className="form-grid" onSubmit={handleCreatePointDate}>
-                <input
-                    className="input"
-                    type="date"
-                    value={dateForm.delivery_date}
-                    onChange={(e) =>
-                    setDateForm((prev) => ({ ...prev, delivery_date: e.target.value }))
-                    }
-                    required
-                />
-
-                <input
-                    className="input"
-                    placeholder="Примерное время, например 08:30"
-                    value={dateForm.approx_time}
-                    onChange={(e) =>
-                    setDateForm((prev) => ({ ...prev, approx_time: e.target.value }))
-                    }
-                />
-
-                <label className="checkbox-row form-span">
-                    <input
-                    type="checkbox"
-                    checked={dateForm.active}
-                    onChange={(e) =>
-                        setDateForm((prev) => ({ ...prev, active: e.target.checked }))
-                    }
-                    />
-                    Активна
-                </label>
-
-                <button className="btn btn-primary form-span" type="submit">
-                    Добавить дату выдачи
-                </button>
-                </form>
-
-                {datesLoading ? (
-                <div className="muted">Загрузка дат...</div>
-                ) : pointDates.length === 0 ? (
-                <div className="muted">Для этой точки пока нет дат выдачи</div>
-                ) : (
-                <div className="table-wrap">
-                    <table className="data-table">
-                    <thead>
-                        <tr>
-                        <th>ID</th>
-                        <th>Дата</th>
-                        <th>Примерное время</th>
-                        <th>Активна</th>
-                        <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {pointDates.map((item) => (
-                        <tr key={item.id}>
-                            <td>{item.id}</td>
-                            <td>{item.delivery_date}</td>
-                            <td>{item.approx_time || "—"}</td>
-                            <td>{item.active ? "Да" : "Нет"}</td>
-                            <td>
-                            <div className="actions-row">
-                                <button
-                                className="btn btn-secondary btn-small"
-                                onClick={() => openEditDate(item)}
-                                >
-                                Редактировать
-                                </button>
-
-                                <button
-                                className="btn btn-danger btn-small"
-                                onClick={() =>
-                                    handleDeletePointDate(item.id, item.delivery_date)
-                                }
-                                >
-                                Удалить
-                                </button>
-                            </div>
-                            </td>
-                        </tr>
-                        ))}
-                    </tbody>
-                    </table>
-                </div>
-                )}
-            </div>
-            )}
-
         </>
       )}
 
@@ -1325,6 +1143,31 @@ const handleDeletePointDate = async (id: number, date: string) => {
                 }
               />
 
+              <input
+                className="input"
+                type="date"
+                value={editPointForm.delivery_date}
+                onChange={(e) =>
+                    setEditPointForm((prev) => ({
+                    ...prev,
+                    delivery_date: e.target.value,
+                    }))
+                }
+                required
+                />
+
+                <input
+                className="input"
+                placeholder="Примерное время"
+                value={editPointForm.approx_time}
+                onChange={(e) =>
+                    setEditPointForm((prev) => ({
+                    ...prev,
+                    approx_time: e.target.value,
+                    }))
+                }
+                />
+
               <label className="checkbox-row form-span">
                 <input
                   type="checkbox"
@@ -1346,67 +1189,6 @@ const handleDeletePointDate = async (id: number, date: string) => {
           </div>
         </div>
       )}
-
-      {editingDate && (
-        <div className="modal-overlay" onClick={() => setEditingDate(null)}>
-            <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-head">
-                <h2>Редактировать дату выдачи</h2>
-                <button
-                className="btn btn-secondary btn-small"
-                onClick={() => setEditingDate(null)}
-                >
-                Закрыть
-                </button>
-            </div>
-
-            <form className="form-grid" onSubmit={handleUpdatePointDate}>
-                <input
-                className="input"
-                type="date"
-                value={editDateForm.delivery_date}
-                onChange={(e) =>
-                    setEditDateForm((prev) => ({
-                    ...prev,
-                    delivery_date: e.target.value,
-                    }))
-                }
-                required
-                />
-
-                <input
-                className="input"
-                placeholder="Примерное время"
-                value={editDateForm.approx_time}
-                onChange={(e) =>
-                    setEditDateForm((prev) => ({
-                    ...prev,
-                    approx_time: e.target.value,
-                    }))
-                }
-                />
-
-                <label className="checkbox-row form-span">
-                <input
-                    type="checkbox"
-                    checked={editDateForm.active}
-                    onChange={(e) =>
-                    setEditDateForm((prev) => ({
-                        ...prev,
-                        active: e.target.checked,
-                    }))
-                    }
-                />
-                Активна
-                </label>
-
-                <button className="btn btn-primary form-span" type="submit">
-                Сохранить изменения
-                </button>
-            </form>
-            </div>
-        </div>
-        )}
 
       {editingProduct && (
         <div className="modal-overlay" onClick={() => setEditingProduct(null)}>

@@ -162,6 +162,8 @@ export async function createAdminDeliveryPoint(payload: {
   place: string;
   active: boolean;
   notes?: string;
+  delivery_date?: string | null;
+  approx_time?: string;
 }) {
   const res = await api.post<AdminDeliveryPoint>(
     "/admin/delivery-points",
@@ -230,6 +232,8 @@ export async function updateAdminDeliveryPoint(
     place: string;
     active: boolean;
     notes?: string;
+    delivery_date?: string | null;
+    approx_time?: string;
   }
 ) {
   const res = await api.put<AdminDeliveryPoint>(
