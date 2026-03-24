@@ -76,8 +76,9 @@ export type AdminDeliveryPoint = {
 
 export type AdminDeliveryDate = {
   id: number;
+  delivery_point_id: number;
   city: string;
-  delivery_date: string; // ISO строка "2026-03-28"
+  delivery_date: string;
+  approx_time?: string | null;
   active: boolean;
-  updated_at?: string | null;
 };

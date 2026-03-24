@@ -516,57 +516,116 @@ def update_shop_status(
         updated=True,
     )
 
+# @router.delete(
+#     "/delivery-dates/{item_id}",
+#     dependencies=[Depends(verify_admin_token)],
+# )
+# def admin_delete_delivery_date(
+#     item_id: int,
+#     db: Session = Depends(get_db),
+# ):
+#     service = DBService(db)
+#     service.delete_delivery_date(item_id)
+#     return {"ok": True}
+
 @router.get(
-    "/delivery-dates",
+    "/delivery-points/{point_id}/dates",
     response_model=list[DeliveryDateResponse],
     dependencies=[Depends(verify_admin_token)],
 )
-def admin_get_delivery_dates(db: Session = Depends(get_db)):
-    service = DBService(db)
-    return service.get_all_delivery_dates_admin()
+def get_point_dates(point_id: int, db: Session = Depends(get_db)):
+    point = db.query(DeliveryPointModel).filter(DeliveryPointModel.id == point_id).first()
+    if not point:
+        raise HTTPException(status_code=404, detail="Точка выдачи не найдена")
+
+    return (
+        db.query(DeliveryDate)
+        .filter(DeliveryDate.delivery_point_id == point_id)
+        .order_by(DeliveryDate.delivery_date.asc())
+        .all()
+    )
 
 @router.post(
-    "/delivery-dates",
+    "/delivery-points/{point_id}/dates",
     response_model=DeliveryDateResponse,
     dependencies=[Depends(verify_admin_token)],
 )
-def admin_create_delivery_date(
+def create_point_date(
+    point_id: int,
     payload: DeliveryDateCreateRequest,
     db: Session = Depends(get_db),
 ):
-    service = DBService(db)
-    return service.create_delivery_date(
-        city=payload.city,
+    point = db.query(DeliveryPointModel).filter(DeliveryPointModel.id == point_id).first()
+    if not point:
+        raise HTTPException(status_code=404, detail="Точка выдачи не найдена")
+
+    conflict = (
+        db.query(DeliveryDate)
+        .filter(
+            DeliveryDate.delivery_point_id == point_id,
+            DeliveryDate.delivery_date == payload.delivery_date,
+        )
+        .first()
+    )
+    if conflict:
+        raise HTTPException(status_code=409, detail="Такая дата для этой точки уже существует")
+
+    item = DeliveryDate(
+        delivery_point_id=point_id,
+        city=point.city,
         delivery_date=payload.delivery_date,
+        approx_time=(payload.approx_time or "").strip() or None,
         active=payload.active,
     )
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    return item
 
 @router.put(
-    "/delivery-dates/{item_id}",
+    "/delivery-dates/{date_id}",
     response_model=DeliveryDateResponse,
     dependencies=[Depends(verify_admin_token)],
 )
-def admin_update_delivery_date(
-    item_id: int,
+def update_point_date(
+    date_id: int,
     payload: DeliveryDateUpdateRequest,
     db: Session = Depends(get_db),
 ):
-    service = DBService(db)
-    return service.update_delivery_date(
-        item_id=item_id,
-        city=payload.city,
-        delivery_date=payload.delivery_date,
-        active=payload.active,
+    item = db.query(DeliveryDate).filter(DeliveryDate.id == date_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Дата не найдена")
+
+    conflict = (
+        db.query(DeliveryDate)
+        .filter(
+            DeliveryDate.id != date_id,
+            DeliveryDate.delivery_point_id == item.delivery_point_id,
+            DeliveryDate.delivery_date == payload.delivery_date,
+        )
+        .first()
     )
+    if conflict:
+        raise HTTPException(status_code=409, detail="Такая дата для этой точки уже существует")
+
+    item.delivery_date = payload.delivery_date
+    item.approx_time = (payload.approx_time or "").strip() or None
+    item.active = payload.active
+    item.updated_at = datetime.utcnow()
+
+    db.commit()
+    db.refresh(item)
+    return item
 
 @router.delete(
-    "/delivery-dates/{item_id}",
+    "/delivery-dates/{date_id}",
     dependencies=[Depends(verify_admin_token)],
 )
-def admin_delete_delivery_date(
-    item_id: int,
-    db: Session = Depends(get_db),
-):
-    service = DBService(db)
-    service.delete_delivery_date(item_id)
-    return {"ok": True}
+def delete_point_date(date_id: int, db: Session = Depends(get_db)):
+    item = db.query(DeliveryDate).filter(DeliveryDate.id == date_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Дата не найдена")
+
+    db.delete(item)
+    db.commit()
+    return {"deleted": True}

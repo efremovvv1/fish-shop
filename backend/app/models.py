@@ -128,7 +128,7 @@ class Product(Base):
     step = Column(Numeric(10, 2), default=1, nullable=False)
     available_qty = Column(Numeric(10, 2), default=0, nullable=False)
     notes = Column(Text, default="", nullable=False)
-    active = Column(String, default="true", nullable=False)
+    active = Column(Boolean, default="true", nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     image_url = Column(Text, default="", nullable=False)
     short_description = Column(Text, default="", nullable=False)
@@ -144,7 +144,7 @@ class DeliveryPointModel(Base):
     id = Column(Integer, primary_key=True, index=True)
     city = Column(String, nullable=False, index=True)
     place = Column(String, nullable=False)
-    active = Column(String, default="true", nullable=False)
+    active = Column(Boolean, default="true", nullable=False)
     notes = Column(Text, default="", nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
@@ -152,8 +152,10 @@ class DeliveryDate(Base):
     __tablename__ = "delivery_dates"
 
     id = Column(Integer, primary_key=True, index=True)
-    city = Column(String, nullable=False, index=True)
-    delivery_date = Column(Date, nullable=False, index=True)
-    active = Column(Boolean, nullable=False, default=True)
-    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
-    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    delivery_point_id = Column(Integer, ForeignKey("delivery_points.id", ondelete="CASCADE"), nullable=False)
+    city = Column(String(255), nullable=False)
+    delivery_date = Column(Date, nullable=False)
+    approx_time = Column(String(32), nullable=True)
+    active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)

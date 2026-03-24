@@ -236,22 +236,24 @@ class ClearCartsResponse(BaseModel):
     cleared_carts: int
     shop_status: Literal["closed", "open", "locked"]
 
+class DeliveryDateCreateRequest(BaseModel):
+    delivery_date: date
+    approx_time: str | None = None
+    active: bool = True
+
+class DeliveryDateUpdateRequest(BaseModel):
+    delivery_date: date
+    approx_time: str | None = None
+    active: bool = True
+
 class DeliveryDateResponse(BaseModel):
     id: int
+    delivery_point_id: int
     city: str
     delivery_date: date
+    approx_time: str | None = None
     active: bool
 
     class Config:
         from_attributes = True
-
-class DeliveryDateCreateRequest(BaseModel):
-    city: str
-    delivery_date: date
-    active: bool = True
-
-class DeliveryDateUpdateRequest(BaseModel):
-    city: str
-    delivery_date: date
-    active: bool = True
 

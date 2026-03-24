@@ -19,9 +19,10 @@ import {
   uploadAdminProductImage,
   clearAdminCarts,
   downloadClientFormatExcel,
-  getAdminDeliveryDates,
+  getAdminPointDates,
+  createAdminPointDate,
+  updateAdminDeliveryDate,
   deleteAdminDeliveryDate,
-  upsertAdminDeliveryDateByCity,
 } from "../api/client";
 import type {
   AdminCart,
@@ -41,7 +42,6 @@ export default function DashboardPage() {
   const [productTotals, setProductTotals] = useState<AdminProductTotal[]>([]);
   const [products, setProducts] = useState<AdminProduct[]>([]);
   const [deliveryPoints, setDeliveryPoints] = useState<AdminDeliveryPoint[]>([]);
-  const [deliveryDates, setDeliveryDates] = useState<AdminDeliveryDate[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [statusLoading, setStatusLoading] = useState(false);
@@ -78,7 +78,6 @@ export default function DashboardPage() {
     place: "",
     active: true,
     notes: "",
-    delivery_date: "",
   });
 
   const [productForm, setProductForm] = useState({
@@ -104,42 +103,50 @@ export default function DashboardPage() {
     place: "",
     active: true,
     notes: "",
-    delivery_date: "",
   });
 
-    const loadData = async () => {
-    setLoading(true);
-    setError("");
+  const [selectedPoint, setSelectedPoint] = useState<AdminDeliveryPoint | null>(null);
+const [pointDates, setPointDates] = useState<AdminDeliveryDate[]>([]);
+const [datesLoading, setDatesLoading] = useState(false);
 
-    try {
-        const [statusRes, cartsRes, totalsRes, productsRes, pointsRes] =
-        await Promise.all([
-            getAdminShopStatus(),
-            getAdminCarts(),
-            getAdminProductTotals(),
-            getAdminProducts(),
-            getAdminDeliveryPoints(),
-        ]);
+const [dateForm, setDateForm] = useState({
+  delivery_date: "",
+  approx_time: "",
+  active: true,
+});
 
-        setShopStatus(statusRes.status);
-        setCarts(cartsRes);
-        setProductTotals(totalsRes);
-        setProducts(productsRes);
-        setDeliveryPoints(pointsRes);
+const [editingDate, setEditingDate] = useState<AdminDeliveryDate | null>(null);
+const [editDateForm, setEditDateForm] = useState({
+  delivery_date: "",
+  approx_time: "",
+  active: true,
+});
 
-        try {
-        const datesRes = await getAdminDeliveryDates();
-        setDeliveryDates(datesRes);
-        } catch (err) {
-        console.error("Не удалось загрузить даты доставки", err);
-        setDeliveryDates([]);
-        }
-    } catch (err) {
-        console.error(err);
-        setError("Не удалось загрузить данные админки");
-    } finally {
-        setLoading(false);
-    }
+const loadData = async () => {
+  setLoading(true);
+  setError("");
+
+  try {
+    const [statusRes, cartsRes, totalsRes, productsRes, pointsRes] =
+      await Promise.all([
+        getAdminShopStatus(),
+        getAdminCarts(),
+        getAdminProductTotals(),
+        getAdminProducts(),
+        getAdminDeliveryPoints(),
+      ]);
+
+    setShopStatus(statusRes.status);
+    setCarts(cartsRes);
+    setProductTotals(totalsRes);
+    setProducts(productsRes);
+    setDeliveryPoints(pointsRes);
+  } catch (err) {
+    console.error(err);
+    setError("Не удалось загрузить данные админки");
+  } finally {
+    setLoading(false);
+  }
 };
 
   useEffect(() => {
@@ -308,10 +315,9 @@ export default function DashboardPage() {
         const city = pointForm.city.trim();
         const place = pointForm.place.trim();
         const notes = pointForm.notes.trim();
-        const deliveryDate = pointForm.delivery_date;
 
-        if (!city || !place || !deliveryDate) {
-            alert("Заполните город, точку выдачи и дату доставки");
+        if (!city || !place) {
+            alert("Заполните город и точку выдачи");
             return;
         }
 
@@ -323,39 +329,18 @@ export default function DashboardPage() {
             notes,
             });
 
-            await upsertAdminDeliveryDateByCity({
-            city,
-            delivery_date: deliveryDate,
-            active: pointForm.active,
-            });
-
             setPointForm({
             city: "",
             place: "",
             active: true,
             notes: "",
-            delivery_date: "",
             });
 
             await loadData();
-            showCopyMessage("Точка выдачи и дата доставки добавлены");
+            showCopyMessage("Точка выдачи добавлена");
         } catch (err) {
             console.error(err);
             alert("Не удалось добавить точку выдачи");
-        }
-        };
-
-    const handleDeleteDeliveryDate = async (id: number, city: string, date: string) => {
-        const ok = window.confirm(`Удалить дату ${date} для города "${city}"?`);
-        if (!ok) return;
-
-        try {
-            await deleteAdminDeliveryDate(id);
-            await loadData();
-            showCopyMessage("Дата доставки удалена");
-        } catch (err) {
-            console.error(err);
-            alert("Не удалось удалить дату доставки");
         }
         };
 
@@ -394,17 +379,11 @@ export default function DashboardPage() {
 
 const openEditPoint = (point: AdminDeliveryPoint) => {
   setEditingPoint(point);
-
-  const existingDate = deliveryDates.find(
-    (d) => d.city.trim().toLowerCase() === point.city.trim().toLowerCase()
-  );
-
   setEditPointForm({
     city: point.city,
     place: point.place,
     active: point.active,
     notes: point.notes || "",
-    delivery_date: existingDate?.delivery_date || "",
   });
 };
 
@@ -416,10 +395,9 @@ const openEditPoint = (point: AdminDeliveryPoint) => {
     const city = editPointForm.city.trim();
     const place = editPointForm.place.trim();
     const notes = editPointForm.notes.trim();
-    const deliveryDate = editPointForm.delivery_date;
 
-    if (!city || !place || !deliveryDate) {
-        alert("Заполните город, точку выдачи и дату доставки");
+    if (!city || !place) {
+        alert("Заполните город и точку выдачи");
         return;
     }
 
@@ -431,12 +409,6 @@ const openEditPoint = (point: AdminDeliveryPoint) => {
         notes,
         });
 
-        await upsertAdminDeliveryDateByCity({
-        city,
-        delivery_date: deliveryDate,
-        active: editPointForm.active,
-        });
-
         setEditingPoint(null);
         await loadData();
         showCopyMessage("Точка выдачи обновлена");
@@ -445,6 +417,102 @@ const openEditPoint = (point: AdminDeliveryPoint) => {
         alert("Не удалось обновить точку выдачи");
     }
     };
+
+    const loadPointDates = async (pointId: number) => {
+  try {
+    setDatesLoading(true);
+    const data = await getAdminPointDates(pointId);
+    setPointDates(data);
+  } catch (err) {
+    console.error(err);
+    alert("Не удалось загрузить даты точки выдачи");
+    setPointDates([]);
+  } finally {
+    setDatesLoading(false);
+  }
+};
+
+const openPointDates = async (point: AdminDeliveryPoint) => {
+  setSelectedPoint(point);
+  await loadPointDates(point.id);
+};
+
+const handleCreatePointDate = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  if (!selectedPoint) return;
+
+  if (!dateForm.delivery_date) {
+    alert("Выберите дату выдачи");
+    return;
+  }
+
+  try {
+    await createAdminPointDate(selectedPoint.id, {
+      delivery_date: dateForm.delivery_date,
+      approx_time: dateForm.approx_time.trim() || undefined,
+      active: dateForm.active,
+    });
+
+    setDateForm({
+      delivery_date: "",
+      approx_time: "",
+      active: true,
+    });
+
+    await loadPointDates(selectedPoint.id);
+    showCopyMessage("Дата выдачи добавлена");
+  } catch (err) {
+    console.error(err);
+    alert("Не удалось добавить дату выдачи");
+  }
+};
+
+const openEditDate = (item: AdminDeliveryDate) => {
+  setEditingDate(item);
+  setEditDateForm({
+    delivery_date: item.delivery_date,
+    approx_time: item.approx_time || "",
+    active: item.active,
+  });
+};
+
+const handleUpdatePointDate = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  if (!editingDate || !selectedPoint) return;
+
+  try {
+    await updateAdminDeliveryDate(editingDate.id, {
+      delivery_date: editDateForm.delivery_date,
+      approx_time: editDateForm.approx_time.trim() || undefined,
+      active: editDateForm.active,
+    });
+
+    setEditingDate(null);
+    await loadPointDates(selectedPoint.id);
+    showCopyMessage("Дата выдачи обновлена");
+  } catch (err) {
+    console.error(err);
+    alert("Не удалось обновить дату выдачи");
+  }
+};
+
+const handleDeletePointDate = async (id: number, date: string) => {
+  if (!selectedPoint) return;
+
+  const ok = window.confirm(`Удалить дату ${date}?`);
+  if (!ok) return;
+
+  try {
+    await deleteAdminDeliveryDate(id);
+    await loadPointDates(selectedPoint.id);
+    showCopyMessage("Дата выдачи удалена");
+  } catch (err) {
+    console.error(err);
+    alert("Не удалось удалить дату выдачи");
+  }
+};
 
     const handleUploadNewProductImage = async (
     e: React.ChangeEvent<HTMLInputElement>
@@ -1021,18 +1089,6 @@ const openEditPoint = (point: AdminDeliveryPoint) => {
                 onChange={(e) => setPointForm((prev) => ({ ...prev, notes: e.target.value }))}
             />
 
-            <input
-                className="input"
-                type="date"
-                value={pointForm.delivery_date}
-                onChange={(e) =>
-                setPointForm((prev) => ({
-                    ...prev,
-                    delivery_date: e.target.value,
-                }))
-                }
-                required
-            />
 
             <label className="checkbox-row form-span">
                 <input
@@ -1083,6 +1139,13 @@ const openEditPoint = (point: AdminDeliveryPoint) => {
 
                           <button
                             className="btn btn-secondary btn-small"
+                            onClick={() => openPointDates(point)}
+                            >
+                            Даты
+                          </button>
+
+                          <button
+                            className="btn btn-secondary btn-small"
                             onClick={async () => {
                               try {
                                 await toggleAdminDeliveryPoint(point.id);
@@ -1124,46 +1187,99 @@ const openEditPoint = (point: AdminDeliveryPoint) => {
               </table>
             </div>
           </div>
+            {selectedPoint && (
+            <div className="card">
+                <h2>
+                Даты выдачи: {selectedPoint.city} / {selectedPoint.place}
+                </h2>
 
-        <div className="card">
-            <h2>Даты доставки</h2>
+                <form className="form-grid" onSubmit={handleCreatePointDate}>
+                <input
+                    className="input"
+                    type="date"
+                    value={dateForm.delivery_date}
+                    onChange={(e) =>
+                    setDateForm((prev) => ({ ...prev, delivery_date: e.target.value }))
+                    }
+                    required
+                />
 
-            <div className="table-wrap">
-                <table className="data-table">
-                <thead>
-                    <tr>
-                    <th>ID</th>
-                    <th>Город</th>
-                    <th>Дата</th>
-                    <th>Активна</th>
-                    <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {deliveryDates.map((item) => (
-                    <tr key={item.id}>
-                        <td>{item.id}</td>
-                        <td>{item.city}</td>
-                        <td>{item.delivery_date}</td>
-                        <td>{item.active ? "Да" : "Нет"}</td>
-                        <td>
-                        <div className="actions-row">
-                            <button
-                            className="btn btn-danger btn-small"
-                            onClick={() =>
-                                handleDeleteDeliveryDate(item.id, item.city, item.delivery_date)
-                            }
-                            >
-                            Удалить
-                            </button>
-                        </div>
-                        </td>
-                    </tr>
-                    ))}
-                </tbody>
-                </table>
+                <input
+                    className="input"
+                    placeholder="Примерное время, например 08:30"
+                    value={dateForm.approx_time}
+                    onChange={(e) =>
+                    setDateForm((prev) => ({ ...prev, approx_time: e.target.value }))
+                    }
+                />
+
+                <label className="checkbox-row form-span">
+                    <input
+                    type="checkbox"
+                    checked={dateForm.active}
+                    onChange={(e) =>
+                        setDateForm((prev) => ({ ...prev, active: e.target.checked }))
+                    }
+                    />
+                    Активна
+                </label>
+
+                <button className="btn btn-primary form-span" type="submit">
+                    Добавить дату выдачи
+                </button>
+                </form>
+
+                {datesLoading ? (
+                <div className="muted">Загрузка дат...</div>
+                ) : pointDates.length === 0 ? (
+                <div className="muted">Для этой точки пока нет дат выдачи</div>
+                ) : (
+                <div className="table-wrap">
+                    <table className="data-table">
+                    <thead>
+                        <tr>
+                        <th>ID</th>
+                        <th>Дата</th>
+                        <th>Примерное время</th>
+                        <th>Активна</th>
+                        <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {pointDates.map((item) => (
+                        <tr key={item.id}>
+                            <td>{item.id}</td>
+                            <td>{item.delivery_date}</td>
+                            <td>{item.approx_time || "—"}</td>
+                            <td>{item.active ? "Да" : "Нет"}</td>
+                            <td>
+                            <div className="actions-row">
+                                <button
+                                className="btn btn-secondary btn-small"
+                                onClick={() => openEditDate(item)}
+                                >
+                                Редактировать
+                                </button>
+
+                                <button
+                                className="btn btn-danger btn-small"
+                                onClick={() =>
+                                    handleDeletePointDate(item.id, item.delivery_date)
+                                }
+                                >
+                                Удалить
+                                </button>
+                            </div>
+                            </td>
+                        </tr>
+                        ))}
+                    </tbody>
+                    </table>
+                </div>
+                )}
             </div>
-            </div>
+            )}
+
         </>
       )}
 
@@ -1209,19 +1325,6 @@ const openEditPoint = (point: AdminDeliveryPoint) => {
                 }
               />
 
-                <input
-                className="input"
-                type="date"
-                value={editPointForm.delivery_date}
-                onChange={(e) =>
-                    setEditPointForm((prev) => ({
-                    ...prev,
-                    delivery_date: e.target.value,
-                    }))
-                }
-                required
-                />
-
               <label className="checkbox-row form-span">
                 <input
                   type="checkbox"
@@ -1243,6 +1346,67 @@ const openEditPoint = (point: AdminDeliveryPoint) => {
           </div>
         </div>
       )}
+
+      {editingDate && (
+        <div className="modal-overlay" onClick={() => setEditingDate(null)}>
+            <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head">
+                <h2>Редактировать дату выдачи</h2>
+                <button
+                className="btn btn-secondary btn-small"
+                onClick={() => setEditingDate(null)}
+                >
+                Закрыть
+                </button>
+            </div>
+
+            <form className="form-grid" onSubmit={handleUpdatePointDate}>
+                <input
+                className="input"
+                type="date"
+                value={editDateForm.delivery_date}
+                onChange={(e) =>
+                    setEditDateForm((prev) => ({
+                    ...prev,
+                    delivery_date: e.target.value,
+                    }))
+                }
+                required
+                />
+
+                <input
+                className="input"
+                placeholder="Примерное время"
+                value={editDateForm.approx_time}
+                onChange={(e) =>
+                    setEditDateForm((prev) => ({
+                    ...prev,
+                    approx_time: e.target.value,
+                    }))
+                }
+                />
+
+                <label className="checkbox-row form-span">
+                <input
+                    type="checkbox"
+                    checked={editDateForm.active}
+                    onChange={(e) =>
+                    setEditDateForm((prev) => ({
+                        ...prev,
+                        active: e.target.checked,
+                    }))
+                    }
+                />
+                Активна
+                </label>
+
+                <button className="btn btn-primary form-span" type="submit">
+                Сохранить изменения
+                </button>
+            </form>
+            </div>
+        </div>
+        )}
 
       {editingProduct && (
         <div className="modal-overlay" onClick={() => setEditingProduct(null)}>
