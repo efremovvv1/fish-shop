@@ -86,23 +86,23 @@ class DBService:
             self.db.commit()
             self.db.refresh(cart)
 
-            return CartResponse(
-                telegram_user_id=user.telegram_user_id,
-                telegram_username=user.telegram_username or "",
-                customer_name=cart.customer_name or "",
-                phone=cart.phone or "",
-                city=cart.city or "",
-                delivery_point=cart.delivery_point or "",
-                delivery_date=cart.delivery_date.isoformat() if cart.delivery_date else "",
-                comment=cart.comment or "",
-                items=[
-                    {"sku": item.sku, "qty": float(item.qty)}
-                    for item in cart.items
-                ],
-                status=cart.status,
-                updated_at=cart.updated_at.isoformat() if cart.updated_at else None,
-                submitted_at=cart.submitted_at.isoformat() if cart.submitted_at else None,
-            )
+        return CartResponse(
+            telegram_user_id=user.telegram_user_id,
+            telegram_username=user.telegram_username or "",
+            customer_name=cart.customer_name or "",
+            phone=cart.phone or "",
+            city=cart.city or "",
+            delivery_point=cart.delivery_point or "",
+            delivery_date=cart.delivery_date.isoformat() if cart.delivery_date else "",
+            comment=cart.comment or "",
+            items=[
+                {"sku": item.sku, "qty": float(item.qty)}
+                for item in cart.items
+            ],
+            status=cart.status,
+            updated_at=cart.updated_at.isoformat() if cart.updated_at else None,
+            submitted_at=cart.submitted_at.isoformat() if cart.submitted_at else None,
+        )
 
     def upsert_cart(self, tg_user: TelegramUser, payload: CartUpsertRequest) -> CartResponse:
         self.ensure_shop_is_open()
@@ -327,7 +327,7 @@ class DBService:
             "short_description": product.short_description or "",
             "description": product.description or "",
             "image_url": product.image_url or "",
-            "active": product.active == "true",
+            "active": product.active,
         }
 
     def delete_product(self, product_id: int):
@@ -418,7 +418,7 @@ class DBService:
             "step": float(product.step),
             "available_qty": float(product.available_qty),
             "notes": product.notes or "",
-            "active": product.active == "true",
+            "active": product.active,
         }
 
     def create_delivery_point(self, payload):
