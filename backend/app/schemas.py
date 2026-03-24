@@ -25,6 +25,8 @@ class DeliveryPoint(BaseModel):
     place: str
     active: bool = True
     notes: Optional[str] = ""
+    delivery_date: Optional[str] = None
+    approx_time: Optional[str] = None
 
 
 class OrderItemCreate(BaseModel):
