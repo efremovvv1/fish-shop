@@ -65,6 +65,7 @@ class CartUpsertRequest(BaseModel):
     city: Optional[str] = ""
     delivery_point: Optional[str] = ""
     delivery_date: Optional[date] = None
+    approx_time: Optional[str] = None
     comment: Optional[str] = ""
     items: List[OrderItemCreate]
 
@@ -77,6 +78,7 @@ class CartResponse(BaseModel):
     city: Optional[str] = ""
     delivery_point: Optional[str] = ""
     delivery_date: Optional[str] = ""
+    approx_time: Optional[str] = None
     comment: Optional[str] = ""
     items: List[OrderItemCreate]
     status: str
@@ -125,6 +127,7 @@ class AdminCartResponse(BaseModel):
     city: Optional[str] = ""
     delivery_point: Optional[str] = ""
     delivery_date: Optional[str] = ""
+    approx_time: Optional[str] = None
     comment: Optional[str] = ""
     status: str
     updated_at: Optional[str] = None
@@ -193,6 +196,7 @@ class AdminDeliveryPointResponse(BaseModel):
     active: bool
     notes: Optional[str] = ""
     delivery_date: date | None = None
+    approx_time: Optional[str] = None
     approx_time: str | None = None
 
 
@@ -206,6 +210,7 @@ class AdminDeliveryPointCreateRequest(BaseModel):
     active: bool = True
     notes: Optional[str] = ""
     delivery_date: date | None = None
+    approx_time: Optional[str] = None
     approx_time: str | None = None
 
 class AdminProductUpdateRequest(BaseModel):
@@ -234,6 +239,7 @@ class AdminDeliveryPointUpdateRequest(BaseModel):
     active: bool = True
     notes: Optional[str] = ""
     delivery_date: date | None = None
+    approx_time: Optional[str] = None
     approx_time: str | None = None
 
 class UploadImageResponse(BaseModel):
