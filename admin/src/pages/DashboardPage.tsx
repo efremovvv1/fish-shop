@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import {
   clearAdminToken,
   downloadOrdersExcel,
@@ -44,9 +44,11 @@ export default function DashboardPage() {
   const [selectedCart, setSelectedCart] = useState<AdminCart | null>(null);
   const [search, setSearch] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
+  const [selectedDeliveryDate, setSelectedDeliveryDate] = useState("");
   const [copyMessage, setCopyMessage] = useState("");
   const [activeTab, setActiveTab] = useState<TabKey>("orders");
-    const [clearLoading, setClearLoading] = useState(false);
+  const [clearLoading, setClearLoading] = useState(false);
+
 
   const [editingProduct, setEditingProduct] = useState<AdminProduct | null>(null);
   const [editProductForm, setEditProductForm] = useState({
@@ -104,7 +106,7 @@ export default function DashboardPage() {
     approx_time: "",
   });
 
-const loadData = async () => {
+const loadData = useCallback(async () => {
   setLoading(true);
   setError("");
 
@@ -112,7 +114,7 @@ const loadData = async () => {
     const [statusRes, cartsRes, totalsRes, productsRes, pointsRes] =
       await Promise.all([
         getAdminShopStatus(),
-        getAdminCarts(),
+        getAdminCarts(selectedDeliveryDate || undefined),
         getAdminProductTotals(),
         getAdminProducts(),
         getAdminDeliveryPoints(),
@@ -129,11 +131,11 @@ const loadData = async () => {
   } finally {
     setLoading(false);
   }
-};
+}, [selectedDeliveryDate]);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   const handleStatusChange = async (nextStatus: ShopStatus) => {
     setStatusLoading(true);
@@ -158,8 +160,9 @@ const loadData = async () => {
 
   const filteredCarts = useMemo(() => {
     const q = search.trim().toLowerCase();
-
+    
     return carts.filter((cart) => {
+      const matchesDate = !setSelectedDeliveryDate || cart.delivery_date?.startsWith(selectedDeliveryDate);
       const matchesCity = !selectedCity || cart.city === selectedCity;
 
       const matchesSearch =
@@ -175,9 +178,9 @@ const loadData = async () => {
           .filter(Boolean)
           .some((value) => String(value).toLowerCase().includes(q));
 
-      return matchesCity && matchesSearch;
+      return matchesCity && matchesSearch && matchesDate;
     });
-  }, [carts, search, selectedCity]);
+  }, [carts, search, selectedCity, selectedDeliveryDate ]);
 
   const stats = useMemo(() => {
     const totalClients = carts.length;
@@ -630,6 +633,13 @@ const openEditPoint = (point: AdminDeliveryPoint) => {
                   ))}
                 </select>
 
+               <input
+                className="input"
+                type="date"
+                value={selectedDeliveryDate}
+                onChange={(e) => setSelectedDeliveryDate(e.target.value)}
+                />
+
                 <input
                   className="input search-input"
                   placeholder="Поиск по имени, телефону, городу, Telegram..."
@@ -654,6 +664,7 @@ const openEditPoint = (point: AdminDeliveryPoint) => {
                       <th>Telegram</th>
                       <th>Город</th>
                       <th>Точка выдачи</th>
+                      <th>Дата выдачи</th>
                       <th>Позиций</th>
                       <th>Обновлено</th>
                       <th>Действия</th>
@@ -668,6 +679,7 @@ const openEditPoint = (point: AdminDeliveryPoint) => {
                         <td>{cart.telegram_username || cart.telegram_user_id}</td>
                         <td>{cart.city || "—"}</td>
                         <td>{cart.delivery_point || "—"}</td>
+                        <td>{cart.delivery_date || "—"}</td>
                         <td>{cart.items.length}</td>
                         <td>{formatDate(cart.updated_at)}</td>
                         <td>
@@ -1426,6 +1438,7 @@ const openEditPoint = (point: AdminDeliveryPoint) => {
               <div><strong>Telegram:</strong> {selectedCart.telegram_username || selectedCart.telegram_user_id}</div>
               <div><strong>Город:</strong> {selectedCart.city || "—"}</div>
               <div><strong>Точка выдачи:</strong> {selectedCart.delivery_point || "—"}</div>
+              <div><strong>Дата выдачи:</strong> {selectedCart.delivery_date || "—"}</div>
               <div><strong>Обновлено:</strong> {formatDate(selectedCart.updated_at)}</div>
             </div>
 

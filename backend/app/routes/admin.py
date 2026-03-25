@@ -12,6 +12,8 @@ from app.models import DeliveryDate, DeliveryPointModel
 from openpyxl.styles import Alignment, Font, PatternFill, Border, Side
 from openpyxl.utils import get_column_letter
 
+from collections import defaultdict
+
 from app.config import ADMIN_USERNAME, ADMIN_PASSWORD, PUBLIC_BACKEND_URL
 from app.db import get_db
 from app.schemas import (
@@ -105,9 +107,12 @@ def get_admin_shop_status(db: Session = Depends(get_db)):
     return ShopStatusResponse(status=service.get_shop_status())
 
 @router.get("/carts", response_model=AdminCartsListResponse, dependencies=[Depends(verify_admin_token)])
-def get_admin_carts(db: Session = Depends(get_db)):
+def get_admin_carts(
+    delivery_date: str | None = None,
+    db: Session = Depends(get_db),
+):
     service = DBService(db)
-    carts = service.get_all_carts()
+    carts = service.get_all_carts(delivery_date=delivery_date)
     return AdminCartsListResponse(carts=carts)
 
 
@@ -146,14 +151,20 @@ def export_orders_excel(db: Session = Depends(get_db)):
         "Telegram",
         "Город",
         "Точка выдачи",
+        "Дата выдачи",
         "Состав заказа",
         "Комментарий",
         "Обновлено",
     ])
 
+    grouped = defaultdict(list)
+
     for cart in carts:
         if cart.get("status") not in {"submitted", "locked"}:
             continue
+
+        key = cart.get("status") not in {"submitted", "locked"}
+        grouped[key].append(cart)
 
         items_text = "; ".join(
             [
@@ -168,6 +179,7 @@ def export_orders_excel(db: Session = Depends(get_db)):
             cart["telegram_username"] or cart["telegram_user_id"],
             cart["city"],
             cart["delivery_point"],
+            cart["delivery_date"],
             items_text,
             cart["comment"],
             cart["updated_at"],

@@ -64,9 +64,10 @@ export async function updateAdminShopStatus(status: ShopStatus) {
   return res.data;
 }
 
-export async function getAdminCarts() {
+export async function getAdminCarts(deliveryDate?: string) {
   const res = await api.get<AdminCartsListResponse>("/admin/carts", {
     headers: authHeaders(),
+    params: deliveryDate ? { delivery_date: deliveryDate } : {},
   });
 
   return res.data.carts;
