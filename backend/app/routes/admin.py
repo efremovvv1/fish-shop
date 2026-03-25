@@ -517,18 +517,6 @@ def update_shop_status(
         updated=True,
     )
 
-# @router.delete(
-#     "/delivery-dates/{item_id}",
-#     dependencies=[Depends(verify_admin_token)],
-# )
-# def admin_delete_delivery_date(
-#     item_id: int,
-#     db: Session = Depends(get_db),
-# ):
-#     service = DBService(db)
-#     service.delete_delivery_date(item_id)
-#     return {"ok": True}
-
 @router.get(
     "/delivery-points/{point_id}/dates",
     response_model=list[DeliveryDateResponse],

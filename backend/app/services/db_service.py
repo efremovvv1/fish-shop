@@ -556,7 +556,7 @@ class DBService:
         mapped_column_names = [x["column_name"] for x in mapping]
         mapped_orders = [x["column_order"] for x in mapping]
 
-        active_products = self.db.query(Product).filter(Product.active == "true").all()
+        active_products = self.db.query(Product).filter(Product.active.is_(True)).all()
         active_product_skus = {p.sku for p in active_products}
 
         carts = self.db.query(Cart).filter(Cart.status.in_(["submitted", "locked"])).all()
@@ -645,7 +645,7 @@ class DBService:
 
         products = {
             p.sku: p
-            for p in self.db.query(Product).filter(Product.active == "true").all()
+            for p in self.db.query(Product).filter(Product.active.is_(True)).all()
         }
 
         created_orders = 0

@@ -304,13 +304,6 @@ export async function downloadClientFormatExcel() {
   window.URL.revokeObjectURL(url);
 }
 
-export async function deleteAdminDeliveryDate(id: number) {
-  const res = await api.delete(`/admin/delivery-dates/${id}`, {
-    headers: authHeaders(),
-  });
-  return res.data;
-}
-
 export async function getAdminPointDates(pointId: number) {
   const res = await api.get<AdminDeliveryDate[]>(
     `/admin/delivery-points/${pointId}/dates`,
@@ -339,20 +332,3 @@ export async function createAdminPointDate(
   return res.data;
 }
 
-export async function updateAdminDeliveryDate(
-  id: number,
-  payload: {
-    delivery_date: string;
-    approx_time?: string;
-    active: boolean;
-  }
-) {
-  const res = await api.put<AdminDeliveryDate>(
-    `/admin/delivery-dates/${id}`,
-    payload,
-    {
-      headers: authHeaders(),
-    }
-  );
-  return res.data;
-}
