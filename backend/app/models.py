@@ -53,7 +53,7 @@ class Cart(Base):
     comment = Column(Text, default="", nullable=False)
     status = Column(String, default="draft", nullable=False)
     delivery_date = Column(Date, nullable=True)
-    delivery_point_id = Column(Integer, ForeignKey("delivery_point.id"), nullable=True)
+    delivery_point_id = Column(Integer, ForeignKey("delivery_points.id"), nullable=True)
     approx_time = Column(String(32), nullable=True)
     pickup_number = Column(Integer, nullable=True)
     updated_at = Column(DateTime, default=datetime.utcnow, nullable=False)
