@@ -121,6 +121,7 @@ class DBService:
         cart.phone = payload.phone or ""
         cart.city = payload.city or ""
         cart.delivery_point = payload.delivery_point or ""
+        cart.approx_time = payload.approx_time or ""
         cart.comment = payload.comment or ""
         cart.delivery_date = payload.delivery_date
 

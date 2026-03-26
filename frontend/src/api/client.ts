@@ -35,6 +35,7 @@ export async function saveServerCart(payload: {
   city: string;
   delivery_point: string;
   delivery_date?: string;
+  approx_time?: string;
   comment: string;
   items: { sku: string; qty: number }[];
 }): Promise<CartResponse | null> {

@@ -179,6 +179,21 @@ def export_orders_excel(db: Session = Depends(get_db)):
 
     grouped = _group_submitted_carts_by_delivery_date(carts)
 
+    if not grouped:
+        ws = default_ws
+        ws.append(["Нет заказов"])
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
+
+        return StreamingResponse(
+            output,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={
+                "Content-Disposition": "attachment; filename=fishshop_client_format.xlsx"
+            },
+        )
+
     # --- Общий лист со всеми заказами ---
     ws_orders = wb.active
     ws_orders.title = "Orders"
@@ -446,7 +461,7 @@ def export_client_format_excel(db: Session = Depends(get_db)):
     wb = Workbook()
     # Удаляем пустой стартовый лист, чтобы не мешал
     default_ws = wb.active
-    wb.remove(default_ws)
+    default_ws.title = "Client Format"
 
     thin = Side(style="thin", color="000000")
     border = Border(left=thin, right=thin, top=thin, bottom=thin)
@@ -499,13 +514,13 @@ def export_client_format_excel(db: Session = Depends(get_db)):
         }
 
         for col_idx, cell in enumerate(ws[1], start=1):
-            if col_idx <= 5:
+            if col_idx <= 6:
                 fill_color = header_fills.get(cell.value, "D9D9D9")
                 cell.fill = PatternFill("solid", fgColor=fill_color)
                 cell.font = Font(bold=True)
                 cell.alignment = Alignment(horizontal="center", vertical="center", text_rotation=90, wrap_text=True)
             else:
-                entry = mapping[col_idx - 6]
+                entry = mapping[col_idx - 7]
                 fill_color = entry.get("fill_color") or "D9D9D9"
                 cell.fill = PatternFill("solid", fgColor=fill_color)
                 cell.font = Font(bold=True)

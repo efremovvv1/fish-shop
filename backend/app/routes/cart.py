@@ -36,6 +36,7 @@ def save_cart(payload: SaveCartRequest, db: Session = Depends(get_db)) -> CartRe
         city=payload.city,
         delivery_point=payload.delivery_point,
         delivery_date=payload.delivery_date,
+        approx_time=payload.approx_time,
         comment=payload.comment,
         items=payload.items,
     )

@@ -102,6 +102,7 @@ export default function CheckoutModal({
         city: checkout.city,
         delivery_point: checkout.deliveryPoint,
         delivery_date: selectedPoint?.delivery_date || undefined,
+        approx_time: selectedPoint?.approx_time || undefined,
         comment: checkout.comment,
         items: items.map((item) => ({
           sku: item.sku,
