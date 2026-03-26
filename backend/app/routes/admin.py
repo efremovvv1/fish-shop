@@ -86,6 +86,40 @@ CLIENT_EXPORT_COLUMNS = [
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
+def _sheet_title_from_delivery_date(value: str | None) -> str:
+    if not value:
+        return "Без даты"
+
+    text = str(value).strip()
+    if not text:
+        return "Без даты"
+
+    # Excel sheet title max 31 chars and cannot contain some symbols
+    safe = text.replace("/", ".").replace("\\", ".").replace(":", "-").replace("?", "")
+    safe = safe.replace("*", "").replace("[", "(").replace("]", ")")
+    return safe[:31]
+
+
+def _group_submitted_carts_by_delivery_date(carts: list[dict]) -> dict[str, list[dict]]:
+    grouped: dict[str, list[dict]] = {}
+
+    for cart in carts:
+        if cart.get("status") not in {"submitted", "locked"}:
+            continue
+
+        key = cart.get("delivery_date") or "Без даты"
+        grouped.setdefault(key, []).append(cart)
+
+    for key in grouped:
+        grouped[key].sort(
+            key=lambda cart: (
+                cart.get("city") or "",
+                cart.get("delivery_point") or "",
+                cart.get("customer_name") or "",
+            )
+        )
+
+    return grouped
 
 @router.post("/login", response_model=AdminLoginResponse)
 def admin_login(payload: AdminLoginRequest):
@@ -143,6 +177,9 @@ def export_orders_excel(db: Session = Depends(get_db)):
 
     wb = Workbook()
 
+    grouped = _group_submitted_carts_by_delivery_date(carts)
+
+    # --- Общий лист со всеми заказами ---
     ws_orders = wb.active
     ws_orders.title = "Orders"
     ws_orders.append([
@@ -152,39 +189,74 @@ def export_orders_excel(db: Session = Depends(get_db)):
         "Город",
         "Точка выдачи",
         "Дата выдачи",
+        "Время",
         "Состав заказа",
         "Комментарий",
         "Обновлено",
     ])
 
-    grouped = defaultdict(list)
+    for delivery_date in sorted(grouped.keys()):
+        for cart in grouped[delivery_date]:
+            items_text = "; ".join(
+                [
+                    f"{item['product_name']} ({item['sku']}) x {item['qty']} {item['unit']}".strip()
+                    for item in cart["items"]
+                ]
+            )
 
-    for cart in carts:
-        if cart.get("status") not in {"submitted", "locked"}:
-            continue
+            ws_orders.append([
+                cart.get("customer_name", ""),
+                cart.get("phone", ""),
+                cart.get("telegram_username") or cart.get("telegram_user_id", ""),
+                cart.get("city", ""),
+                cart.get("delivery_point", ""),
+                cart.get("delivery_date", ""),
+                cart.get("approx_time", "") or "",
+                items_text,
+                cart.get("comment", ""),
+                cart.get("updated_at", ""),
+            ])
 
-        key = cart.get("status") not in {"submitted", "locked"}
-        grouped[key].append(cart)
+    # --- Отдельные листы по датам ---
+    for delivery_date in sorted(grouped.keys()):
+        sheet_name = _sheet_title_from_delivery_date(delivery_date)
+        ws_date = wb.create_sheet(title=sheet_name)
 
-        items_text = "; ".join(
-            [
-                f"{item['product_name']} ({item['sku']}) x {item['qty']} {item['unit']}".strip()
-                for item in cart["items"]
-            ]
-        )
-
-        ws_orders.append([
-            cart["customer_name"],
-            cart["phone"],
-            cart["telegram_username"] or cart["telegram_user_id"],
-            cart["city"],
-            cart["delivery_point"],
-            cart["delivery_date"],
-            items_text,
-            cart["comment"],
-            cart["updated_at"],
+        ws_date.append([
+            "Имя",
+            "Телефон",
+            "Telegram",
+            "Город",
+            "Точка выдачи",
+            "Дата выдачи",
+            "Время",
+            "Состав заказа",
+            "Комментарий",
+            "Обновлено",
         ])
 
+        for cart in grouped[delivery_date]:
+            items_text = "; ".join(
+                [
+                    f"{item['product_name']} ({item['sku']}) x {item['qty']} {item['unit']}".strip()
+                    for item in cart["items"]
+                ]
+            )
+
+            ws_date.append([
+                cart.get("customer_name", ""),
+                cart.get("phone", ""),
+                cart.get("telegram_username") or cart.get("telegram_user_id", ""),
+                cart.get("city", ""),
+                cart.get("delivery_point", ""),
+                cart.get("delivery_date", ""),
+                cart.get("approx_time", "") or "",
+                items_text,
+                cart.get("comment", ""),
+                cart.get("updated_at", ""),
+            ])
+
+    # --- Totals ---
     ws_totals = wb.create_sheet(title="Totals")
     ws_totals.append([
         "SKU",
@@ -365,128 +437,109 @@ def export_client_format_excel(db: Session = Depends(get_db)):
     carts = service.get_all_carts()
     mapping = service.get_client_export_mapping()
 
+    grouped = _group_submitted_carts_by_delivery_date(carts)
+
     wb = Workbook()
-    ws = wb.active
-    ws.title = "Client Format"
+    # Удаляем пустой стартовый лист, чтобы не мешал
+    default_ws = wb.active
+    wb.remove(default_ws)
 
     thin = Side(style="thin", color="000000")
     border = Border(left=thin, right=thin, top=thin, bottom=thin)
 
     base_headers = ["Kunde", "Auto 1", "Zeit", "Goroda", "Gebiet"]
 
-    # row 1: main headers
-    headers = base_headers + [entry["column_name"] for entry in mapping]
-    ws.append(headers)
+    for delivery_date in sorted(grouped.keys()):
+        ws = wb.create_sheet(title=_sheet_title_from_delivery_date(delivery_date))
 
-    # row 2: weight labels
-    weight_row = ["", "", "", "", "Gewicht"] + [entry.get("weight_label", "") for entry in mapping]
-    ws.append(weight_row)
+        headers = base_headers + [entry["column_name"] for entry in mapping]
+        ws.append(headers)
 
-    # row 3: price labels
-    price_row = ["", "", "", "", "Preis"] + [entry.get("price_label", "") for entry in mapping]
-    ws.append(price_row)
+        weight_row = ["", "", "", "", "Gewicht"] + [entry.get("weight_label", "") for entry in mapping]
+        ws.append(weight_row)
 
-    # data rows start from row 4
-    row_index = 1
-    for cart in carts:
-        if cart.get("status") not in {"submitted", "locked"}:
-            continue
+        price_row = ["", "", "", "", "Preis"] + [entry.get("price_label", "") for entry in mapping]
+        ws.append(price_row)
 
-        items_map = {}
-        for item in cart["items"]:
-            sku = (item.get("sku") or "").strip()
-            qty = float(item.get("qty") or 0)
-            items_map[sku] = qty
+        row_index = 1
 
-        updated_at = cart.get("updated_at") or ""
-        time_value = row_index
-        if updated_at:
-            try:
-                dt = datetime.fromisoformat(updated_at.replace("Z", "+00:00"))
-                time_value = row_index
-            except Exception:
-                time_value = row_index
+        for cart in grouped[delivery_date]:
+            items_map = {}
+            for item in cart["items"]:
+                sku = (item.get("sku") or "").strip()
+                qty = float(item.get("qty") or 0)
+                items_map[sku] = qty
 
-        row = [
-            cart.get("customer_name", ""),
-            "",
-            time_value,
-            cart.get("city", ""),
-            cart.get("delivery_point", ""),
-        ]
+            row = [
+                cart.get("customer_name", ""),
+                "",
+                cart.get("approx_time", "") or row_index,
+                cart.get("city", ""),
+                cart.get("delivery_point", ""),
+            ]
 
-        for entry in mapping:
-            qty = items_map.get(entry["sku"], "")
-            row.append("" if qty in (0, 0.0) else qty)
+            for entry in mapping:
+                qty = items_map.get(entry["sku"], "")
+                row.append("" if qty in (0, 0.0) else qty)
 
-        ws.append(row)
-        row_index += 1
+            ws.append(row)
+            row_index += 1
 
-    # Styling
-    header_fills = {
-        "Kunde": "FFF200",
-        "Auto 1": "D9D9D9",
-        "Zeit": "F2F2F2",
-        "Goroda": "FFF200",
-        "Gebiet": "00FF00",
-    }
+        header_fills = {
+            "Kunde": "FFF200",
+            "Auto 1": "D9D9D9",
+            "Zeit": "F2F2F2",
+            "Goroda": "FFF200",
+            "Gebiet": "00FF00",
+        }
 
-    # style header row
-    for col_idx, cell in enumerate(ws[1], start=1):
-        if col_idx <= 5:
-            fill_color = header_fills.get(cell.value, "D9D9D9")
-            cell.fill = PatternFill("solid", fgColor=fill_color)
-            cell.font = Font(bold=True)
-            cell.alignment = Alignment(horizontal="center", vertical="center", text_rotation=90, wrap_text=True)
-        else:
-            entry = mapping[col_idx - 6]
-            fill_color = entry.get("fill_color") or "D9D9D9"
-            cell.fill = PatternFill("solid", fgColor=fill_color)
-            cell.font = Font(bold=True)
-            cell.alignment = Alignment(horizontal="center", vertical="center", text_rotation=90, wrap_text=True)
-
-        cell.border = border
-
-    # style weight and price rows
-    for row_num in [2, 3]:
-        for cell in ws[row_num]:
-            cell.border = border
-            cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
-            if row_num == 2:
-                cell.font = Font(bold=False)
+        for col_idx, cell in enumerate(ws[1], start=1):
+            if col_idx <= 5:
+                fill_color = header_fills.get(cell.value, "D9D9D9")
+                cell.fill = PatternFill("solid", fgColor=fill_color)
+                cell.font = Font(bold=True)
+                cell.alignment = Alignment(horizontal="center", vertical="center", text_rotation=90, wrap_text=True)
             else:
+                entry = mapping[col_idx - 6]
+                fill_color = entry.get("fill_color") or "D9D9D9"
+                cell.fill = PatternFill("solid", fgColor=fill_color)
+                cell.font = Font(bold=True)
+                cell.alignment = Alignment(horizontal="center", vertical="center", text_rotation=90, wrap_text=True)
+
+            cell.border = border
+
+        for row_num in [2, 3]:
+            for cell in ws[row_num]:
+                cell.border = border
+                cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
                 cell.font = Font(bold=False)
 
-    # style data rows
-    for row in ws.iter_rows(min_row=4, max_row=ws.max_row):
-        for cell in row:
-            cell.border = border
-            cell.alignment = Alignment(horizontal="center", vertical="center")
+        for row in ws.iter_rows(min_row=4, max_row=ws.max_row):
+            for cell in row:
+                cell.border = border
+                cell.alignment = Alignment(horizontal="center", vertical="center")
 
-    # widths
-    fixed_widths = {
-        1: 18,  # Kunde
-        2: 10,  # Auto 1
-        3: 8,   # Zeit
-        4: 16,  # Goroda
-        5: 16,  # Gebiet
-    }
+        fixed_widths = {
+            1: 18,
+            2: 10,
+            3: 10,
+            4: 16,
+            5: 24,
+        }
 
-    for col_idx in range(1, ws.max_column + 1):
-        letter = get_column_letter(col_idx)
-        if col_idx in fixed_widths:
-            ws.column_dimensions[letter].width = fixed_widths[col_idx]
-        else:
-            ws.column_dimensions[letter].width = 9
+        for col_idx in range(1, ws.max_column + 1):
+            letter = get_column_letter(col_idx)
+            if col_idx in fixed_widths:
+                ws.column_dimensions[letter].width = fixed_widths[col_idx]
+            else:
+                ws.column_dimensions[letter].width = 9
 
-    # row heights
-    ws.row_dimensions[1].height = 120
-    ws.row_dimensions[2].height = 22
-    ws.row_dimensions[3].height = 22
+        ws.row_dimensions[1].height = 120
+        ws.row_dimensions[2].height = 22
+        ws.row_dimensions[3].height = 22
 
-    # freeze panes and filters
-    ws.freeze_panes = "A4"
-    ws.auto_filter.ref = f"A1:{get_column_letter(ws.max_column)}{ws.max_row}"
+        ws.freeze_panes = "A4"
+        ws.auto_filter.ref = f"A1:{get_column_letter(ws.max_column)}{ws.max_row}"
 
     output = BytesIO()
     wb.save(output)

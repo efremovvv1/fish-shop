@@ -203,6 +203,7 @@ class DBService:
                 "city": cart.city or "",
                 "delivery_point": cart.delivery_point or "",
                 "delivery_date": cart.delivery_date.isoformat() if cart.delivery_date else "",
+                "approx_time": cart.approx_time or "",
                 "comment": cart.comment or "",
                 "status": cart.status,
                 "updated_at": cart.updated_at.isoformat() if cart.updated_at else None,
