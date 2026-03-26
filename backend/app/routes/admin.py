@@ -183,6 +183,7 @@ def export_orders_excel(db: Session = Depends(get_db)):
     ws_orders = wb.active
     ws_orders.title = "Orders"
     ws_orders.append([
+        "№ заказа",
         "Имя",
         "Телефон",
         "Telegram",
@@ -205,6 +206,7 @@ def export_orders_excel(db: Session = Depends(get_db)):
             )
 
             ws_orders.append([
+                cart.get("pickup_number", ""),
                 cart.get("customer_name", ""),
                 cart.get("phone", ""),
                 cart.get("telegram_username") or cart.get("telegram_user_id", ""),
@@ -223,6 +225,7 @@ def export_orders_excel(db: Session = Depends(get_db)):
         ws_date = wb.create_sheet(title=sheet_name)
 
         ws_date.append([
+            "№ заказа",
             "Имя",
             "Телефон",
             "Telegram",
@@ -244,6 +247,7 @@ def export_orders_excel(db: Session = Depends(get_db)):
             )
 
             ws_date.append([
+                cart.get("pickup_number", ""),
                 cart.get("customer_name", ""),
                 cart.get("phone", ""),
                 cart.get("telegram_username") or cart.get("telegram_user_id", ""),
@@ -447,7 +451,7 @@ def export_client_format_excel(db: Session = Depends(get_db)):
     thin = Side(style="thin", color="000000")
     border = Border(left=thin, right=thin, top=thin, bottom=thin)
 
-    base_headers = ["Kunde", "Auto 1", "Zeit", "Goroda", "Gebiet"]
+    base_headers = ["Nr.", "Kunde", "Auto 1", "Zeit", "Goroda", "Gebiet"]
 
     for delivery_date in sorted(grouped.keys()):
         ws = wb.create_sheet(title=_sheet_title_from_delivery_date(delivery_date))
@@ -455,10 +459,10 @@ def export_client_format_excel(db: Session = Depends(get_db)):
         headers = base_headers + [entry["column_name"] for entry in mapping]
         ws.append(headers)
 
-        weight_row = ["", "", "", "", "Gewicht"] + [entry.get("weight_label", "") for entry in mapping]
+        weight_row = ["", "", "", "", "", "Gewicht"] + [entry.get("weight_label", "") for entry in mapping]
         ws.append(weight_row)
 
-        price_row = ["", "", "", "", "Preis"] + [entry.get("price_label", "") for entry in mapping]
+        price_row = ["", "", "", "", "", "Preis"] + [entry.get("price_label", "") for entry in mapping]
         ws.append(price_row)
 
         row_index = 1
@@ -471,6 +475,7 @@ def export_client_format_excel(db: Session = Depends(get_db)):
                 items_map[sku] = qty
 
             row = [
+                cart.get("pickup_number", ""),
                 cart.get("customer_name", ""),
                 "",
                 cart.get("approx_time", "") or row_index,
@@ -520,11 +525,12 @@ def export_client_format_excel(db: Session = Depends(get_db)):
                 cell.alignment = Alignment(horizontal="center", vertical="center")
 
         fixed_widths = {
-            1: 18,
-            2: 10,
+            1: 8,
+            2: 18,
             3: 10,
-            4: 16,
-            5: 24,
+            4: 10,
+            5: 16,
+            6: 24,
         }
 
         for col_idx in range(1, ws.max_column + 1):

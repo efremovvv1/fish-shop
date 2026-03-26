@@ -659,6 +659,7 @@ const openEditPoint = (point: AdminDeliveryPoint) => {
                   <thead>
                     <tr>
                       <th>ID</th>
+                      <th>№</th>
                       <th>Имя</th>
                       <th>Телефон</th>
                       <th>Telegram</th>
@@ -674,6 +675,7 @@ const openEditPoint = (point: AdminDeliveryPoint) => {
                     {filteredCarts.map((cart) => (
                       <tr key={cart.cart_id}>
                         <td>{cart.cart_id}</td>
+                        <td>{cart.pickup_number ?? "—"}</td>
                         <td>{cart.customer_name || "—"}</td>
                         <td>{cart.phone || "—"}</td>
                         <td>{cart.telegram_username || cart.telegram_user_id}</td>
@@ -1433,6 +1435,7 @@ const openEditPoint = (point: AdminDeliveryPoint) => {
             </div>
 
             <div className="details-grid">
+              <div><strong>Номер заказа:</strong> {selectedCart.pickup_number ?? "—"}</div>
               <div><strong>Имя:</strong> {selectedCart.customer_name || "—"}</div>
               <div><strong>Телефон:</strong> {selectedCart.phone || "—"}</div>
               <div><strong>Telegram:</strong> {selectedCart.telegram_username || selectedCart.telegram_user_id}</div>

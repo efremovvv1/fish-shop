@@ -31,6 +31,7 @@ export type AdminCart = {
   delivery_point?: string;
   delivery_date?: string | null;
   approx_time?: string | null;
+  pickup_number?: number | null;
   comment?: string;
   status: string;
   updated_at?: string | null;

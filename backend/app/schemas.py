@@ -81,6 +81,7 @@ class CartResponse(BaseModel):
     delivery_point: Optional[str] = ""
     delivery_date: Optional[str] = ""
     approx_time: Optional[str] = None
+    pickup_number: int | None = None
     comment: Optional[str] = ""
     items: List[OrderItemCreate]
     status: str
@@ -130,6 +131,7 @@ class AdminCartResponse(BaseModel):
     delivery_point: Optional[str] = ""
     delivery_date: Optional[str] = ""
     approx_time: Optional[str] = None
+    pickup_number: int | None = None
     comment: Optional[str] = ""
     status: str
     updated_at: Optional[str] = None

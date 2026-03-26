@@ -94,6 +94,7 @@ class DBService:
             city=cart.city or "",
             delivery_point=cart.delivery_point or "",
             delivery_date=cart.delivery_date.isoformat() if cart.delivery_date else "",
+            pickup_number= cart.pickup_number,
             comment=cart.comment or "",
             items=[
                 {"sku": item.sku, "qty": float(item.qty)}
@@ -138,6 +139,13 @@ class DBService:
                     qty=item.qty,
                 )
             )
+
+        if cart.pickup_number is None:
+            max_number = self.db.query(Cart.pickup_number).order_by(Cart.pickup_number.desc()).first()
+            next_number = 1
+            if max_number and max_number[0]:
+                next_number = max_number[0] + 1
+            cart.pickup_number = next_number
 
         self.db.commit()
         self.db.refresh(cart)
@@ -204,6 +212,7 @@ class DBService:
                 "delivery_point": cart.delivery_point or "",
                 "delivery_date": cart.delivery_date.isoformat() if cart.delivery_date else "",
                 "approx_time": cart.approx_time or "",
+                "pickup_number": cart.pickup_number,
                 "comment": cart.comment or "",
                 "status": cart.status,
                 "updated_at": cart.updated_at.isoformat() if cart.updated_at else None,
@@ -265,6 +274,7 @@ class DBService:
             "city": cart.city or "",
             "delivery_point": cart.delivery_point or "",
             "delivery_date": cart.delivery_date.isoformat() if cart.delivery_date else "",
+            "pickup_number": cart.pickup_number,
             "comment": cart.comment or "",
             "status": cart.status,
             "updated_at": cart.updated_at.isoformat() if cart.updated_at else None,

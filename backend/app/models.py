@@ -55,6 +55,7 @@ class Cart(Base):
     delivery_date = Column(Date, nullable=True)
     delivery_point_id = Column(Integer, ForeignKey("delivery_point.id"), nullable=True)
     approx_time = Column(String(32), nullable=True)
+    pickup_number = Column(Integer, nullable=True)
     updated_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     submitted_at = Column(DateTime, nullable=True)
 

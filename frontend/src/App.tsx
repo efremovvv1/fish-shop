@@ -131,7 +131,7 @@ export default function App() {
         replaceItemsFromServer(cartRes.items || [], productsRes.data);
 
         setCheckoutFields({
-          customerName: cartRes.customer_name || "",
+          customerName:  "",
           phone: cartRes.phone || "",
           city: cartRes.city || "",
           deliveryPoint: cartRes.delivery_point || "",
