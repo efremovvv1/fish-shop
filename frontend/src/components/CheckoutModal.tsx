@@ -37,11 +37,6 @@ export default function CheckoutModal({
     if (tg.telegramUsername) {
       setCheckoutFields({ telegramUsername: tg.telegramUsername });
     }
-
-    if (tg.firstName && !checkout.customerName) {
-      const fullName = [tg.firstName, tg.lastName].filter(Boolean).join(" ");
-      setCheckoutFields({ customerName: fullName });
-      }
     }, [open, tg, setCheckoutFields, checkout.customerName]);
 
    useEffect(() => {

@@ -6,7 +6,7 @@ import Hero from "./components/Hero";
 import CartDrawer from "./components/CartDrawer";
 import CheckoutModal from "./components/CheckoutModal";
 import Toast from "./components/Toast";
-import { initTelegramApp, getTelegramUser } from "./lib/telegram";
+import { initTelegramApp } from "./lib/telegram";
 import type { Product } from "./types";
 import { useCartStore } from "./store/cart";
 
@@ -98,16 +98,7 @@ export default function App() {
     initTelegramApp();
   }, []);
 
-  useEffect(() => {
-    const tgUser = getTelegramUser();
-    if (tgUser.telegramUsername) {
-      setCheckoutFields({ telegramUsername: tgUser.telegramUsername });
-    }
-    if (tgUser.firstName) {
-      const fullName = [tgUser.firstName, tgUser.lastName].filter(Boolean).join(" ");
-      setCheckoutFields({ customerName: fullName });
-    }
-  }, [setCheckoutFields]);
+  
 
   useEffect(() => {
     const loadData = async () => {
