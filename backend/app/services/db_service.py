@@ -4,6 +4,7 @@ import json
 
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
+from sqalchemy import text
 
 from app.models import (
     User,
@@ -142,11 +143,9 @@ class DBService:
             )
 
         if cart.pickup_number is None:
-            max_number = self.db.query(Cart.pickup_number).order_by(Cart.pickup_number.desc()).first()
-            next_number = 1
-            if max_number and max_number[0]:
-                next_number = max_number[0] + 1
-            cart.pickup_number = next_number
+            cart.pickup_number = self.db.execute(
+                text("SELECT nextval('public.carts_pickup_number_seq')")
+            ).scalar()
 
         self.db.commit()
         self.db.refresh(cart)
@@ -627,6 +626,7 @@ class DBService:
 
         self.db.query(CartItem).delete()
         self.db.query(Cart).delete()
+        self.db.execute(text("ALTER SEQUENCE public.carts_pickup_number_seq RESTART WITH 1"))
 
         setting = (
             self.db.query(ShopSetting)
