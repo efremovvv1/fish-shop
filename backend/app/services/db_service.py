@@ -4,7 +4,7 @@ import json
 
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
-from sqalchemy import text
+from sqlalchemy import text
 
 from app.models import (
     User,
