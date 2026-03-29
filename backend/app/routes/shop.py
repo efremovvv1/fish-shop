@@ -6,6 +6,7 @@ from app.schemas import (
     ShopStatusResponse,
     ShopStatusUpdateRequest,
     ShopStatusUpdateResponse,
+    StoreSettingsResponse,
     StoreSettingsUpdateRequest,
 )
 from app.services.db_service import DBService
