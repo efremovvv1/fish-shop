@@ -1,9 +1,9 @@
 import requests
-from app.config import BOT_TOKEN
+from app.config import TELEGRAM_BOT_TOKEN
 
 
 def send_telegram_message(chat_id: str, text: str):
-    if not BOT_TOKEN:
+    if not TELEGRAM_BOT_TOKEN:
         return
 
     try:
