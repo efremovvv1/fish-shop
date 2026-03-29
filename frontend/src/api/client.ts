@@ -73,7 +73,7 @@ export async function getStoreSettings() {
   const res = await api.get<{
     shop_name: string;
     shop_cover_image: string;
-  }>("/store-settings");
+  }>("/shop/store-settings");
 
   return res.data;
 }

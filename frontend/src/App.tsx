@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { api, getServerCart, getShopStatus, saveServerCart } from "./api/client";
+import { api, getServerCart, getShopStatus, getStoreSettings ,saveServerCart } from "./api/client";
 import CategoryTabs from "./components/CategoryTabs";
 import ProductCard from "./components/ProductCard";
 import Hero from "./components/Hero";
@@ -9,7 +9,6 @@ import Toast from "./components/Toast";
 import { initTelegramApp } from "./lib/telegram";
 import type { Product } from "./types";
 import { useCartStore } from "./store/cart";
-import { getStoreSettings } from "./api/client";
 
 function FooterInfoCard({
   title,
