@@ -73,6 +73,7 @@ class CartUpsertRequest(BaseModel):
 
 
 class CartResponse(BaseModel):
+    pickup_number: int | None = None
     telegram_user_id: str
     telegram_username: Optional[str] = ""
     customer_name: Optional[str] = ""
@@ -275,3 +276,17 @@ class DeliveryDateResponse(BaseModel):
 class Config:
     from_attributes = True
 
+class StoreSettingsResponse(BaseModel):
+    shop_name: str
+    shop_cover_image: str
+
+
+class StoreSettingsUpdateRequest(BaseModel):
+    shop_name: str
+    shop_cover_image: str = ""
+
+class DeleteCartWithReasonRequest(BaseModel):
+    reason: str
+
+class DeleteCartWithReasonResponse(BaseModel):
+    deleted: bool

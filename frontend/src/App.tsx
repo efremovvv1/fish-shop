@@ -9,6 +9,7 @@ import Toast from "./components/Toast";
 import { initTelegramApp } from "./lib/telegram";
 import type { Product } from "./types";
 import { useCartStore } from "./store/cart";
+import { getStoreSettings } from "./api/client";
 
 function FooterInfoCard({
   title,
@@ -70,6 +71,11 @@ export default function App() {
   const [error, setError] = useState("");
   const [checkoutOpen, setCheckoutOpen] = useState(false);
 
+  const [storeSettings, setStoreSettings] = useState({
+  shop_name: "БАВАРИЯ 🐟 РЫБА 2",
+  shop_cover_image: "",
+});
+
   const replaceItemsFromServer = useCartStore((state) => state.replaceItemsFromServer);
   const setCheckoutFields = useCartStore((state) => state.setCheckoutFields);
   const setShopStatus = useCartStore((state) => state.setShopStatus);
@@ -105,16 +111,18 @@ export default function App() {
       try {
         setLoading(true);
 
-      const [productsRes, categoriesRes, shopStatusRes, cartRes] = await Promise.all([
+      const [productsRes, categoriesRes, shopStatusRes, cartRes, settingsRes] = await Promise.all([
         api.get<Product[]>("/products"),
         api.get<string[]>("/products/categories"),
         getShopStatus(),
         getServerCart(),
+        getStoreSettings(),
       ]);
 
       setProducts(productsRes.data);
       setCategories(categoriesRes.data);
       setShopStatus(shopStatusRes.status);
+      setStoreSettings(settingsRes)
 
       if (cartRes) {
         setCartStatus((cartRes.status as "draft" | "submitted") || "draft");
@@ -156,6 +164,12 @@ export default function App() {
     if (!initialized) return;
     if (!canEdit) return;
 
+    if (!checkout.customerName.trim()) return;
+    if (!checkout.city.trim()) return;
+    if (!checkout.deliveryPoint.trim()) return;
+    if (!checkout.deliveryDate.trim()) return;
+    if (items.length === 0) return;
+
     const timeout = setTimeout(async () => {
       try {
         await saveServerCart({
@@ -189,7 +203,10 @@ export default function App() {
       radial-gradient(circle at top right, rgba(23, 120, 140, 0.20), transparent 24%),
       linear-gradient(180deg, #081018 0%, #0b1720 35%, #0d1b24 65%, #081018 100%)
     `, }}>
-      <Hero />
+      <Hero 
+        title={storeSettings.shop_name || "БАВАРИЯ 🐟 РЫБА 2"}
+        coverImage={storeSettings.shop_cover_image}
+      />
 
       <p style={{ color: "#9ca3af", marginBottom: 20, fontSize: 16 }}>
         Выберите товары и добавьте их в корзину

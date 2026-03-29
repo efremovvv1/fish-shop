@@ -1,4 +1,9 @@
-export default function Hero() {
+type Props = {
+  title: string;
+  coverImage?: string;
+};
+
+export default function Hero({ title, coverImage }: Props) {
   return (
     <div
       style={{
@@ -7,7 +12,7 @@ export default function Hero() {
         overflow: "hidden",
         position: "relative",
         marginBottom: 24,
-        backgroundImage: "url('/hero.jpg')",
+        backgroundImage: `url('${coverImage || "/hero.jpg"}')`,
         backgroundSize: "cover",
         backgroundPosition: "center",
       }}
@@ -23,9 +28,7 @@ export default function Hero() {
           padding: 24,
         }}
       >
-        <h1 style={{ fontSize: 34, margin: 0 }}>
-          БАВАРИЯ 🐟 РЫБА
-        </h1>
+        <h1 style={{ fontSize: 34, margin: 0 }}>{title}</h1>
 
         <p
           style={{

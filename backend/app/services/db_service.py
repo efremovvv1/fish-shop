@@ -5,6 +5,7 @@ import json
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 
 from app.models import (
     User,
@@ -19,6 +20,7 @@ from app.models import (
 
 from app.schemas import CartUpsertRequest, CartResponse, TelegramUser
 from app.models import DeliveryDate
+from app.utils.telegram_notify import send_telegram_message
 
 
 class DBService:
@@ -76,6 +78,43 @@ class DBService:
                 status_code=409,
                 detail=f"Shop is not open for editing. Current status: {status}",
             )
+    def get_store_settings(self):
+        settings = {
+            "shop_name": "БАВАРИЯ 🐟 РЫБА 2",
+            "shop_cover_image": "",
+        }
+
+        rows = self.db.query(ShopSetting).all()
+        for row in rows:
+            if row.key in settings:
+                settings[row.key] = row.value or ""
+
+        return settings
+
+
+    def update_store_settings(self, shop_name: str, shop_cover_image: str):
+        pairs = {
+            "shop_name": shop_name,
+            "shop_cover_image": shop_cover_image,
+        }
+
+        for key, value in pairs.items():
+            item = self.db.query(ShopSetting).filter(ShopSetting.key == key).first()
+
+            if item:
+                item.value = value
+                item.updated_at = datetime.utcnow()
+            else:
+                self.db.add(
+                    ShopSetting(
+                        key=key,
+                        value=value,
+                        updated_at=datetime.utcnow(),
+                    )
+                )
+
+        self.db.commit()
+        return self.get_store_settings()
 
     def get_cart(self, tg_user: TelegramUser) -> CartResponse:
         user = self.get_or_create_user(tg_user)
@@ -108,6 +147,16 @@ class DBService:
 
     def upsert_cart(self, tg_user: TelegramUser, payload: CartUpsertRequest) -> CartResponse:
         self.ensure_shop_is_open()
+
+        if len(payload.items) == 0:
+            raise ValueError("Корзина пустая")
+
+        if len(payload.items) > 100:
+            raise ValueError("Слишком много позиций в корзине")
+
+        for item in payload.items:
+            if item.qty <= 0:
+                raise ValueError(f"Некорректное количество для товара {item.sku}")
 
         user = self.get_or_create_user(tg_user)
         cart = self.db.query(Cart).filter(Cart.user_id == user.id).first()
@@ -441,6 +490,19 @@ class DBService:
             delivery_date=payload.delivery_date,
             approx_time=(payload.approx_time or "").strip() or None,
         )
+
+        existing = (
+            self.db.query(DeliveryPointModel)
+            .filter(
+                DeliveryPointModel.city == payload.city.strip(),
+                DeliveryPointModel.place == payload.place.strip(),
+            )
+            .first()
+        )
+
+        if existing:
+            raise ValueError("Такая точка выдачи уже существует")
+
         self.db.add(point)
         self.db.commit()
         self.db.refresh(point)
@@ -481,6 +543,19 @@ class DBService:
         }
     
     def update_delivery_point(self, point_id: int, payload):
+        existing = (
+            self.db.query(DeliveryPointModel)
+            .filter(
+                DeliveryPointModel.id != point_id,
+                DeliveryPointModel.city == payload.city.strip(),
+                DeliveryPointModel.place == payload.place.strip(),
+            )
+            .first()
+        )
+
+        if existing:
+            raise ValueError("Такая точка выдачи уже существует")
+
         point = self.db.query(DeliveryPointModel).filter(DeliveryPointModel.id == point_id).first()
         if not point:
             raise HTTPException(status_code=404, detail="Delivery point not found")
@@ -753,6 +828,7 @@ class DBService:
 
         return (
             "✅ Заказ сохранён\n\n"
+            f"📝 Номер заказа: {pickup_number}"
             f"👤 Имя: {cart.customer_name or '-'}\n"
             f"📍 Город: {cart.city or '-'}\n"
             f"🏪 Точка выдачи: {cart.delivery_point or '-'}\n\n"
@@ -813,3 +889,42 @@ class DBService:
         self.db.delete(item)
         self.db.commit()
         return True
+    
+    def delete_cart_with_reason(self, cart_id: int, reason: str):
+        cart = self.db.query(Cart).filter(Cart.id == cart_id).first()
+        if not cart:
+            raise ValueError("Корзина не найдена")
+
+        user = cart.user
+        pickup_number = cart.pickup_number
+        customer_name = cart.customer_name or ""
+        city = cart.city or ""
+        delivery_point = cart.delivery_point or ""
+        delivery_date = cart.delivery_date.isoformat() if cart.delivery_date else ""
+        approx_time = cart.approx_time or ""
+
+        self.db.query(CartItem).filter(CartItem.cart_id == cart.id).delete()
+        self.db.delete(cart)
+        self.db.commit()
+
+        message_lines = [
+            "Ваша корзина была удалена администратором.",
+            f"Причина: {reason}",
+        ]
+
+        if pickup_number:
+            message_lines.append(f"Номер заказа: {pickup_number}")
+        if customer_name:
+            message_lines.append(f"Имя: {customer_name}")
+        if city:
+            message_lines.append(f"Город: {city}")
+        if delivery_point:
+            message_lines.append(f"Точка выдачи: {delivery_point}")
+        if delivery_date:
+            message_lines.append(f"Дата выдачи: {delivery_date}")
+        if approx_time:
+            message_lines.append(f"Время: {approx_time}")
+
+        send_telegram_message(user.telegram_user_id, "\n".join(message_lines))
+
+        return {"deleted": True}

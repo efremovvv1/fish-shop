@@ -22,6 +22,8 @@ from app.schemas import (
     ShopStatusResponse,
     ShopStatusUpdateRequest,
     ShopStatusUpdateResponse,
+    StoreSettingsResponse,
+    StoreSettingsUpdateRequest,
     AdminCartsListResponse,
     AdminCartResponse,
     AdminProductTotalsResponse,
@@ -39,6 +41,8 @@ from app.schemas import (
     DeliveryDateResponse,
     DeliveryDateCreateRequest,
     DeliveryDateUpdateRequest,
+    DeleteCartWithReasonRequest,
+    DeleteCartWithReasonResponse,
 )
 from app.services.db_service import DBService
 from app.utils.admin_auth import create_admin_access_token, verify_admin_token
@@ -139,6 +143,31 @@ def admin_login(payload: AdminLoginRequest):
 def get_admin_shop_status(db: Session = Depends(get_db)):
     service = DBService(db)
     return ShopStatusResponse(status=service.get_shop_status())
+
+@router.get(
+    "/store-settings",
+    response_model=StoreSettingsResponse,
+    dependencies=[Depends(verify_admin_token)],
+)
+def get_admin_store_settings(db: Session = Depends(get_db)):
+    service = DBService(db)
+    return service.get_store_settings()
+
+
+@router.put(
+    "/store-settings",
+    response_model=StoreSettingsResponse,
+    dependencies=[Depends(verify_admin_token)],
+)
+def update_admin_store_settings(
+    payload: StoreSettingsUpdateRequest,
+    db: Session = Depends(get_db),
+):
+    service = DBService(db)
+    return service.update_store_settings(
+        shop_name=payload.shop_name.strip(),
+        shop_cover_image=payload.shop_cover_image.strip(),
+    )
 
 @router.get("/carts", response_model=AdminCartsListResponse, dependencies=[Depends(verify_admin_token)])
 def get_admin_carts(
@@ -363,9 +392,16 @@ def get_admin_delivery_points(db: Session = Depends(get_db)):
     response_model=AdminDeliveryPointResponse,
     dependencies=[Depends(verify_admin_token)],
 )
-def create_admin_delivery_point(payload: AdminDeliveryPointCreateRequest, db: Session = Depends(get_db)):
+def create_admin_delivery_point(
+    payload: AdminDeliveryPointCreateRequest,
+    db: Session = Depends(get_db),
+):
     service = DBService(db)
-    return service.create_delivery_point(payload)
+
+    try:
+        return service.create_delivery_point(payload)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.post(
@@ -397,7 +433,11 @@ def update_admin_delivery_point(
     db: Session = Depends(get_db),
 ):
     service = DBService(db)
-    return service.update_delivery_point(point_id, payload)
+
+    try:
+        return service.update_delivery_point(point_id, payload)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.delete(
@@ -716,3 +756,46 @@ def delete_point_date(date_id: int, db: Session = Depends(get_db)):
     db.delete(item)
     db.commit()
     return {"deleted": True}
+
+@router.get(
+    "/store-settings",
+    response_model=StoreSettingsResponse,
+    dependencies=[Depends(verify_admin_token)],
+)
+def get_admin_store_settings(db: Session = Depends(get_db)):
+    service = DBService(db)
+    return service.get_store_settings()
+
+
+@router.put(
+    "/store-settings",
+    response_model=StoreSettingsResponse,
+    dependencies=[Depends(verify_admin_token)],
+)
+def update_admin_store_settings(
+    payload: StoreSettingsUpdateRequest,
+    db: Session = Depends(get_db),
+):
+    service = DBService(db)
+    return service.update_store_settings(
+        shop_name=payload.shop_name.strip(),
+        shop_cover_image=payload.shop_cover_image.strip(),
+    )
+
+@router.post(
+    "/carts/{cart_id}/delete",
+    response_model=DeleteCartWithReasonResponse,
+    dependencies=[Depends(verify_admin_token)],
+)
+def delete_admin_cart(
+    cart_id: int,
+    payload: DeleteCartWithReasonRequest,
+    db: Session = Depends(get_db),
+):
+    service = DBService(db)
+
+    try:
+        result = service.delete_cart_with_reason(cart_id, payload.reason.strip())
+        return DeleteCartWithReasonResponse(**result)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))

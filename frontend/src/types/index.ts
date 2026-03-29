@@ -17,7 +17,7 @@ export type Product = {
 };
 
 export type DeliveryPoint = {
-  id: number;
+  id?: number;
   city: string;
   place: string;
   active: boolean;
@@ -32,7 +32,9 @@ export type CartItemDraft = {
 };
 
 export type CartResponse = {
-  delivery_date: string;
+  delivery_date?: string;
+  approx_time?: string | null;
+  pickup_number?: number | null;
   telegram_user_id: string;
   telegram_username?: string;
   customer_name?: string;

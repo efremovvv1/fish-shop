@@ -68,3 +68,12 @@ export async function submitServerOrder(): Promise<{ order_id: string; status: s
 
   return res.data;
 }
+
+export async function getStoreSettings() {
+  const res = await api.get<{
+    shop_name: string;
+    shop_cover_image: string;
+  }>("/store-settings");
+
+  return res.data;
+}

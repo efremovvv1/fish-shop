@@ -23,7 +23,6 @@ export default function CheckoutModal({
   const checkout = useCartStore((state) => state.checkout);
   const setCheckoutField = useCartStore((state) => state.setCheckoutField);
   const setCheckoutFields = useCartStore((state) => state.setCheckoutFields);
-  //const setCartStatus = useCartStore((state) => state.setCartStatus);
   const canEdit = useCartStore((state) => state.canEdit());
 
   const [deliveryPoints, setDeliveryPoints] = useState<DeliveryPoint[]>([]);
@@ -37,7 +36,7 @@ export default function CheckoutModal({
     if (tg.telegramUsername) {
       setCheckoutFields({ telegramUsername: tg.telegramUsername });
     }
-    }, [open, tg, setCheckoutFields, checkout.customerName]);
+    }, [open, tg, setCheckoutFields]);
 
    useEffect(() => {
     if (!open) return;

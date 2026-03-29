@@ -19,6 +19,9 @@ import {
   uploadAdminProductImage,
   clearAdminCarts,
   downloadClientFormatExcel,
+  getAdminShopSettings,
+  updateAdminStoreSettings,
+  deleteAdminCart,
 } from "../api/client";
 import type {
   AdminCart,
@@ -27,6 +30,8 @@ import type {
   AdminProductTotal,
   ShopStatus,
 } from "../types";
+
+import axios from "axios"
 
 
 type TabKey = "orders" | "products" | "delivery";
@@ -49,6 +54,10 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<TabKey>("orders");
   const [clearLoading, setClearLoading] = useState(false);
 
+  const [storeSettings, setStoreSettings] = useState({
+  shop_name: "",
+  shop_cover_image: "",
+  });
 
   const [editingProduct, setEditingProduct] = useState<AdminProduct | null>(null);
   const [editProductForm, setEditProductForm] = useState({
@@ -111,9 +120,10 @@ const loadData = useCallback(async () => {
   setError("");
 
   try {
-    const [statusRes, cartsRes, totalsRes, productsRes, pointsRes] =
+    const [statusRes, settingsRes, cartsRes, totalsRes, productsRes, pointsRes] =
       await Promise.all([
         getAdminShopStatus(),
+        getAdminShopSettings(),
         getAdminCarts(selectedDeliveryDate || undefined),
         getAdminProductTotals(),
         getAdminProducts(),
@@ -121,6 +131,7 @@ const loadData = useCallback(async () => {
       ]);
 
     setShopStatus(statusRes.status);
+    setStoreSettings(settingsRes);
     setCarts(cartsRes);
     setProductTotals(totalsRes);
     setProducts(productsRes);
@@ -162,7 +173,7 @@ const loadData = useCallback(async () => {
     const q = search.trim().toLowerCase();
     
     return carts.filter((cart) => {
-      const matchesDate = !setSelectedDeliveryDate || cart.delivery_date?.startsWith(selectedDeliveryDate);
+      const matchesDate = !selectedDeliveryDate || cart.delivery_date?.startsWith(selectedDeliveryDate);
       const matchesCity = !selectedCity || cart.city === selectedCity;
 
       const matchesSearch =
@@ -327,9 +338,15 @@ const loadData = useCallback(async () => {
 
             await loadData();
             showCopyMessage("Точка выдачи добавлена");
-        } catch (err) {
+        } catch (err: unknown) {
             console.error(err);
-            alert("Не удалось добавить точку выдачи");
+
+            if (axios.isAxiosError(err)){
+              alert( err?.response?.data?.detail ||"Не удалось добавить точку выдачи");
+            } else {
+              alert("Не удалось добавить точку выдачи")
+            }
+            
         }
         };
 
@@ -405,9 +422,15 @@ const openEditPoint = (point: AdminDeliveryPoint) => {
         setEditingPoint(null);
         await loadData();
         showCopyMessage("Точка выдачи обновлена");
-    } catch (err) {
+    } catch (err: unknown) {
         console.error(err);
-        alert("Не удалось обновить точку выдачи");
+
+        if(axios.isAxiosError(err)){
+          alert(err?.response?.data?.detail || "Не удалось обновить точку выдачи");
+        } else{
+          alert("Не удалось обновить точку выдачи")
+        }
+        
     }
     };
 
@@ -531,6 +554,58 @@ const openEditPoint = (point: AdminDeliveryPoint) => {
             >
               {clearLoading ? "Очистка..." : "Очистить корзины"}
             </button>
+
+             <form
+            className="form-grid"
+            onSubmit={async (e) => {
+              e.preventDefault();
+
+              try {
+                await updateAdminStoreSettings(storeSettings);
+                showCopyMessage("Настройки магазина обновлены");
+              } catch (err: unknown) {
+                console.error(err);
+
+                if (axios.isAxiosError(err)) {
+                  alert(err.response?.data?.detail || "Не удалось обновить настройки магазина");
+                } else {
+                  alert("Не удалось обновить настройки магазина");
+                }
+              }
+            }}
+          >
+            <input
+              className="input form-span"
+              placeholder="Название магазина"
+              value={storeSettings.shop_name}
+              onChange={(e) =>
+                setStoreSettings((prev) => ({ ...prev, shop_name: e.target.value }))
+              }
+            />
+
+            <input
+              className="input form-span"
+              placeholder="Ссылка на обложку"
+              value={storeSettings.shop_cover_image}
+              onChange={(e) =>
+                setStoreSettings((prev) => ({ ...prev, shop_cover_image: e.target.value }))
+              }
+            />
+
+            {storeSettings.shop_cover_image && (
+              <div className="form-span image-preview-wrap">
+                <img
+                  src={storeSettings.shop_cover_image}
+                  alt="Cover preview"
+                  className="image-preview"
+                />
+              </div>
+            )}
+
+            <button className="btn btn-primary form-span" type="submit">
+              Сохранить настройки
+            </button>
+          </form>
           </div>
         </div>
 
@@ -710,6 +785,30 @@ const openEditPoint = (point: AdminDeliveryPoint) => {
                               onClick={() => setSelectedCart(cart)}
                             >
                               Подробнее
+                            </button>
+
+                            <button
+                              className="btn btn-danger"
+                              onClick={async () => {
+                                const reason = window.prompt("Укажи причину удаления корзины");
+                                if (!reason) return;
+
+                                try {
+                                  await deleteAdminCart(cart.cart_id, reason);
+                                  await loadData();
+                                  showCopyMessage("Корзина удалена");
+                                } catch (err: unknown) {
+                                  console.error(err);
+
+                                  if (axios.isAxiosError(err)) {
+                                    alert(err.response?.data?.detail || "Не удалось удалить корзину");
+                                  } else {
+                                    alert("Не удалось удалить корзину");
+                                  }
+                                }
+                              }}
+                            >
+                              Удалить
                             </button>
                           </div>
                         </td>

@@ -333,3 +333,37 @@ export async function createAdminPointDate(
   return res.data;
 }
 
+export async function getAdminShopSettings() {
+  const res = await api.get<{
+    shop_name: string;
+    shop_cover_image: string;
+  }>("/admin/store-settings", {
+    headers: authHeaders(),
+  });
+
+  return res.data;
+}
+
+export async function updateAdminStoreSettings(payload: {
+  shop_name: string;
+  shop_cover_image: string;
+}) {
+  const res = await api.put<{
+    shop_name: string;
+    shop_cover_image: string;
+  }>("/admin/store-settings", payload, {
+    headers: authHeaders(),
+  });
+
+  return res.data;
+}
+
+export async function deleteAdminCart(cartId: number, reason: string) {
+  const res = await api.post<{ deleted: boolean }>(
+    `/admin/carts/${cartId}/delete`,
+    { reason },
+    { headers: authHeaders() }
+  );
+
+  return res.data;
+}
