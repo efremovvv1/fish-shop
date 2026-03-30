@@ -2,12 +2,28 @@ import axios from "axios";
 import { getTelegramInitData } from "../lib/telegram";
 import type { CartResponse, ShopStatusResponse } from "../types";
 
-
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
+  timeout: 15000,
 });
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (axios.isAxiosError(error)) {
+      const detail =
+        (error.response?.data as { detail?: string } | undefined)?.detail ||
+        error.message ||
+        "Request failed";
+
+      return Promise.reject(new Error(detail));
+    }
+
+    return Promise.reject(error);
+  }
+);
 
 export async function getShopStatus() {
   const res = await api.get<ShopStatusResponse>("/shop/status");
@@ -35,7 +51,7 @@ export async function saveServerCart(payload: {
   city: string;
   delivery_point: string;
   delivery_date?: string;
-  approx_time?: string;
+  approx_time?: string | null;
   comment: string;
   items: { sku: string; qty: number }[];
 }): Promise<CartResponse | null> {

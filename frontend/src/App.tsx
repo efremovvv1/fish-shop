@@ -109,37 +109,45 @@ export default function App() {
     const loadData = async () => {
       try {
         setLoading(true);
+        setError("");
 
-      const [productsRes, categoriesRes, shopStatusRes, cartRes, settingsRes] = await Promise.all([
-        api.get<Product[]>("/products"),
-        api.get<string[]>("/products/categories"),
-        getShopStatus(),
-        getServerCart(),
-        getStoreSettings(),
-      ]);
+        const [productsRes, categoriesRes, shopStatusRes, settingsRes] = await Promise.all([
+          api.get<Product[]>("/products"),
+          api.get<string[]>("/products/categories"),
+          getShopStatus(),
+          getStoreSettings(),
+        ]);
 
-      setProducts(productsRes.data);
-      setCategories(categoriesRes.data);
-      setShopStatus(shopStatusRes.status);
-      setStoreSettings(settingsRes)
+        setProducts(productsRes.data);
+        setCategories(categoriesRes.data);
+        setShopStatus(shopStatusRes.status);
+        setStoreSettings(settingsRes);
 
-      if (cartRes) {
-        setCartStatus((cartRes.status as "draft" | "submitted") || "draft");
+        try {
+          const cartRes = await getServerCart();
 
-        replaceItemsFromServer(cartRes.items || [], productsRes.data);
+          if (cartRes) {
+            setCartStatus((cartRes.status as "draft" | "submitted") || "draft");
 
-        setCheckoutFields({
-          customerName:  "",
-          phone: cartRes.phone || "",
-          city: cartRes.city || "",
-          deliveryPoint: cartRes.delivery_point || "",
-          deliveryDate: cartRes.delivery_date || "",
-          comment: cartRes.comment || "",
-        });
-      } else {
-        setCartStatus("draft");
-        replaceItemsFromServer([], productsRes.data);
-      }
+            replaceItemsFromServer(cartRes.items || [], productsRes.data);
+
+            setCheckoutFields({
+              customerName: cartRes.customer_name || "",
+              phone: cartRes.phone || "",
+              city: cartRes.city || "",
+              deliveryPoint: cartRes.delivery_point || "",
+              deliveryDate: cartRes.delivery_date || "",
+              comment: cartRes.comment || "",
+            });
+          } else {
+            setCartStatus("draft");
+            replaceItemsFromServer([], productsRes.data);
+          }
+        } catch (cartErr) {
+          console.error("Failed to load cart", cartErr);
+          setCartStatus("draft");
+          replaceItemsFromServer([], productsRes.data);
+        }
 
         setInitialized(true);
       } catch (err) {
@@ -171,18 +179,23 @@ export default function App() {
 
     const timeout = setTimeout(async () => {
       try {
-        await saveServerCart({
+        const cartResponse = await saveServerCart({
           customer_name: checkout.customerName,
           phone: checkout.phone,
           city: checkout.city,
           delivery_point: checkout.deliveryPoint,
           delivery_date: checkout.deliveryDate,
+          approx_time: null,
           comment: checkout.comment,
           items: items.map((item) => ({
             sku: item.sku,
             qty: item.qty,
           })),
         });
+
+        if (cartResponse?.status) {
+          setCartStatus(cartResponse.status as "draft" | "submitted");
+        }
       } catch (err) {
         console.error(err);
       }

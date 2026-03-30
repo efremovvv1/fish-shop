@@ -55,7 +55,7 @@ class Cart(Base):
     delivery_date = Column(Date, nullable=True)
     delivery_point_id = Column(Integer, ForeignKey("delivery_points.id"), nullable=True)
     approx_time = Column(String(32), nullable=True)
-    pickup_number = Column(Integer, nullable=True)
+    pickup_number = Column(Integer, unique=True, index=True, nullable=True)
     updated_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     submitted_at = Column(DateTime, nullable=True)
 
@@ -91,7 +91,7 @@ class Order(Base):
     delivery_point = Column(String, default="", nullable=False)
     comment = Column(Text, default="", nullable=False)
     delivery_date = Column(Date, nullable=True)
-    delivery_point_id = Column(Integer, ForeignKey("delivery_points.id"), nullable=True)
+    delivery_point_id = Column(Integer, ForeignKey("delivery_points.id", ondelete="CASCADE"), nullable=True)
     approx_time = Column(String(32), nullable=True)
     total = Column(Numeric(10, 2), default=0, nullable=False)
     currency = Column(String, default="EUR", nullable=False)
@@ -152,7 +152,7 @@ class DeliveryPointModel(Base):
     active = Column(Boolean, default=True, nullable=False)
     notes = Column(Text, default="", nullable=False)
     delivery_date = Column(Date, nullable=True)
-    approx_time=Column(String(32), nullable=True)
+    approx_time = Column(String(32), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 class DeliveryDate(Base):

@@ -5,7 +5,7 @@ from app.db import get_db
 from app.schemas import SubmitOrderRequest, OrderCreateResponse
 from app.services.db_service import DBService
 from app.utils.telegram_auth import validate_telegram_init_data
-from app.utils.telegram_bot import send_telegram_message
+from app.utils.telegram_notify import send_telegram_message
 
 router = APIRouter(prefix="/orders", tags=["orders"])
 

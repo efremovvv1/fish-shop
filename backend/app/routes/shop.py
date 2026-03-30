@@ -4,10 +4,7 @@ from sqlalchemy.orm import Session
 from app.db import get_db
 from app.schemas import (
     ShopStatusResponse,
-    ShopStatusUpdateRequest,
-    ShopStatusUpdateResponse,
     StoreSettingsResponse,
-    StoreSettingsUpdateRequest,
 )
 from app.services.db_service import DBService
 
@@ -18,6 +15,7 @@ router = APIRouter(prefix="/shop", tags=["shop"])
 def get_shop_status(db: Session = Depends(get_db)) -> ShopStatusResponse:
     service = DBService(db)
     return ShopStatusResponse(status=service.get_shop_status())
+
 
 @router.get("/store-settings", response_model=StoreSettingsResponse)
 def get_store_settings(db: Session = Depends(get_db)):

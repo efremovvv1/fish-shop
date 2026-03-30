@@ -209,8 +209,10 @@ def export_orders_excel(db: Session = Depends(get_db)):
     grouped = _group_submitted_carts_by_delivery_date(carts)
 
     if not grouped:
-        ws = default_ws
+        ws = wb.active
+        ws.title = "Orders"
         ws.append(["Нет заказов"])
+        
         output = BytesIO()
         wb.save(output)
         output.seek(0)

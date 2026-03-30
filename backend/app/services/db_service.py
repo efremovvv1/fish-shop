@@ -701,7 +701,6 @@ class DBService:
 
         self.db.query(CartItem).delete()
         self.db.query(Cart).delete()
-        self.db.execute(text("ALTER SEQUENCE public.carts_pickup_number_seq RESTART WITH 1"))
 
         setting = (
             self.db.query(ShopSetting)
@@ -825,13 +824,16 @@ class DBService:
             lines.append(f"• {product.name} — {qty_text} {product.unit}")
 
         items_text = "\n".join(lines) if lines else "• Нет товаров"
+        pickup_number = cart.pickup_number or "-"
 
         return (
             "✅ Заказ сохранён\n\n"
-            f"📝 Номер заказа: {pickup_number}"
+            f"📝 Номер заказа: {pickup_number}\n"
             f"👤 Имя: {cart.customer_name or '-'}\n"
             f"📍 Город: {cart.city or '-'}\n"
-            f"🏪 Точка выдачи: {cart.delivery_point or '-'}\n\n"
+            f"🏪 Точка выдачи: {cart.delivery_point or '-'}\n"
+            f"📅 Дата выдачи: {cart.delivery_date or '-'}\n"
+            f"⏰ Время: {cart.approx_time or '-'}\n\n"
             f"🧾 Состав заказа:\n{items_text}\n\n"
             f"💶 Примерная сумма: {total:.2f} {currency}\n\n"
             "Вы можете изменить заказ до окончания приёма заявок."
@@ -895,6 +897,9 @@ class DBService:
         if not cart:
             raise ValueError("Корзина не найдена")
 
+        if not reason.strip():
+            raise ValueError("Не указана причина удаления")
+
         user = cart.user
         pickup_number = cart.pickup_number
         customer_name = cart.customer_name or ""
@@ -908,8 +913,8 @@ class DBService:
         self.db.commit()
 
         message_lines = [
-            "Ваша корзина была удалена администратором.",
-            f"Причина: {reason}",
+            "❌ Ваша корзина была удалена администратором.",
+            f"Причина: {reason.strip()}",
         ]
 
         if pickup_number:
@@ -925,6 +930,9 @@ class DBService:
         if approx_time:
             message_lines.append(f"Время: {approx_time}")
 
-        send_telegram_message(user.telegram_user_id, "\n".join(message_lines))
+        telegram_sent = send_telegram_message(user.telegram_user_id, "\n".join(message_lines))
 
-        return {"deleted": True}
+        return {
+            "deleted": True,
+            "telegram_sent": telegram_sent,
+        }

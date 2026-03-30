@@ -1,5 +1,5 @@
 from typing import Optional, List, Literal
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, COnfigDict
 from datetime import date
 
 class Product(BaseModel):
@@ -62,13 +62,13 @@ class TelegramUser(BaseModel):
 
 
 class CartUpsertRequest(BaseModel):
-    customer_name: Optional[str] = ""
-    phone: Optional[str] = ""
-    city: Optional[str] = ""
-    delivery_point: Optional[str] = ""
+    customer_name: Optional[str] = Field(default="", max_length=255)
+    phone: Optional[str] = Field(default="", max_length=64)
+    city: Optional[str] = Field(default="", max_length=255)
+    delivery_point: Optional[str] = Field(default="", max_length=255)
     delivery_date: Optional[date] = None
-    approx_time: Optional[str] = None
-    comment: Optional[str] = ""
+    approx_time: Optional[str] = Field(default=None, max_length=32)
+    comment: Optional[str] = Field(default="", max_length=2000)
     items: List[OrderItemCreate]
 
 
@@ -82,7 +82,6 @@ class CartResponse(BaseModel):
     delivery_point: Optional[str] = ""
     delivery_date: Optional[str] = ""
     approx_time: Optional[str] = None
-    pickup_number: int | None = None
     comment: Optional[str] = ""
     items: List[OrderItemCreate]
     status: str
@@ -106,8 +105,8 @@ class ShopStatusUpdateResponse(BaseModel):
     updated: bool
 
 class AdminLoginRequest(BaseModel):
-    username: str
-    password: str
+    username: str = Field(..., min_length=1, max_length=128)
+    password: str = Field(..., min_length=1, max_length=256)
 
 
 class AdminLoginResponse(BaseModel):
@@ -202,8 +201,6 @@ class AdminDeliveryPointResponse(BaseModel):
     notes: Optional[str] = ""
     delivery_date: date | None = None
     approx_time: Optional[str] = None
-    approx_time: str | None = None
-
 
 class AdminDeliveryPointsListResponse(BaseModel):
     delivery_points: List[AdminDeliveryPointResponse]
@@ -216,7 +213,6 @@ class AdminDeliveryPointCreateRequest(BaseModel):
     notes: Optional[str] = ""
     delivery_date: date | None = None
     approx_time: Optional[str] = None
-    approx_time: str | None = None
 
 class AdminProductUpdateRequest(BaseModel):
     sku: str
@@ -245,7 +241,6 @@ class AdminDeliveryPointUpdateRequest(BaseModel):
     notes: Optional[str] = ""
     delivery_date: date | None = None
     approx_time: Optional[str] = None
-    approx_time: str | None = None
 
 class UploadImageResponse(BaseModel):
     image_url: str 
@@ -273,6 +268,8 @@ class DeliveryDateResponse(BaseModel):
     approx_time: str | None = None
     active: bool
 
+    model_config = COnfigDict(from_attributes = True)
+
 class Config:
     from_attributes = True
 
@@ -286,7 +283,8 @@ class StoreSettingsUpdateRequest(BaseModel):
     shop_cover_image: str = ""
 
 class DeleteCartWithReasonRequest(BaseModel):
-    reason: str
+    reason: str = Field(..., min_length=3, max_length=1000)
 
 class DeleteCartWithReasonResponse(BaseModel):
     deleted: bool
+    telegram_sent: bool
