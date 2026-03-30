@@ -19,8 +19,10 @@ def submit_order(payload: SubmitOrderRequest, db: Session = Depends(get_db)) -> 
 
     try:
         message_text = service.build_cart_summary_message(user)
-        send_telegram_message(user.telegram_user_id, message_text)
+        telegram_sent = send_telegram_message(user.telegram_user_id, message_text)
+        if not telegram_sent:
+            logger.warning("Telegram notification was not delivered for user=%s", user.telegram_user_id)
     except Exception as e:
-        print(f"Failed to send Telegram message: {e}")
+        logger.exception("Unexpected error while sending order confirmation to Telegram for user=%s", user.telegram_user_id)
 
     return OrderCreateResponse(order_id="cart-saved", status="submitted")

@@ -202,7 +202,7 @@ export default function App() {
     }, 500);
 
     return () => clearTimeout(timeout);
-  }, [items, checkout, initialized, canEdit]);
+  }, [items, checkout, initialized, canEdit, setCartStatus]);
 
   const filteredProducts = useMemo(() => {
     if (!selectedCategory) return products;
@@ -251,12 +251,11 @@ export default function App() {
             <FooterInfoCard title="Impressum">
               Anbieter dieses Angebots ist der jeweilige Verkäufer/Shop-Betreiber.
               {"\n\n"}
-              Bitte hier eintragen:
-              {"\n"}- Name / Firmenname
+              {"\n"}- Name / Firmenname : Frischer Fish & Feinkost RIHOFF
               {"\n"}- Anschrift
-              {"\n"}- Kontakt-E-Mail
-              {"\n"}- Telefonnummer
-              {"\n"}- ggf. USt-ID oder weitere Pflichtangaben
+              {"\n"}- Kontakt-E-Mail : info@rihoff-frischer-fisch.de
+              {"\n"}- Telefonnummer : +49 176 243 40500
+              {"\n"}- USt-ID : DE 304755977
             </FooterInfoCard>
 
             <FooterInfoCard title="Datenschutz">

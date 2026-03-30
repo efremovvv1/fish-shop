@@ -3,11 +3,12 @@ from sqlalchemy.orm import Session
 from io import BytesIO
 from fastapi.responses import StreamingResponse
 from openpyxl import Workbook
-import uuid
+from uuid import uuid4
 from pathlib import Path
 from datetime import datetime
 import os
 from app.models import DeliveryDate, DeliveryPointModel
+from PIL import image
 
 from openpyxl.styles import Alignment, Font, PatternFill, Border, Side
 from openpyxl.utils import get_column_letter
@@ -87,6 +88,9 @@ CLIENT_EXPORT_COLUMNS = [
 ("CAVIAR06","икра кеты"),
 ("SHRIMP05","Креветки отварные 5 кг"),
 ]
+
+MAX_IMAGE_SIZE = 5 * 1024 * 1024
+ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -212,7 +216,7 @@ def export_orders_excel(db: Session = Depends(get_db)):
         ws = wb.active
         ws.title = "Orders"
         ws.append(["Нет заказов"])
-        
+
         output = BytesIO()
         wb.save(output)
         output.seek(0)
@@ -451,31 +455,42 @@ def delete_admin_delivery_point(point_id: int, db: Session = Depends(get_db)):
     service = DBService(db)
     return service.delete_delivery_point(point_id)
 
-@router.post(
-    "/upload/product-image",
-    response_model=UploadImageResponse,
-    dependencies=[Depends(verify_admin_token)],
-)
-async def upload_product_image(file: UploadFile = File(...)):
-    allowed_types = {"image/jpeg", "image/png", "image/webp", "image/jpg"}
-    if file.content_type not in allowed_types:
-        raise HTTPException(status_code=400, detail="Unsupported file type")
+@router.post("/upload/product-image")
+async def upload_product_image(
+    file: UploadFile = File(...),
+    admin=Depends(require_admin),
+):
+    if file.content_type not in ALLOWED_IMAGE_TYPES:
+        raise HTTPException(status_code=400, detail="Unsupported image type")
 
-    ext = Path(file.filename or "").suffix.lower()
+    content = await file.read()
+
+    if not content:
+        raise HTTPException(status_code=400, detail="Empty file")
+
+    if len(content) > MAX_IMAGE_SIZE:
+        raise HTTPException(status_code=400, detail="File is too large")
+
+    try:
+        image = Image.open(BytesIO(content))
+        image.verify()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid image file")
+
+    ext = Path(file.filename or "product").suffix.lower()
     if ext not in {".jpg", ".jpeg", ".png", ".webp"}:
         ext = ".jpg"
 
-    filename = f"{uuid.uuid4().hex}{ext}"
     upload_dir = Path("uploads/products")
     upload_dir.mkdir(parents=True, exist_ok=True)
 
+    filename = f"product_{uuid4().hex}{ext}"
     file_path = upload_dir / filename
-
-    content = await file.read()
     file_path.write_bytes(content)
 
-    image_url = f"{PUBLIC_BACKEND_URL}/uploads/products/{filename}"
-    return UploadImageResponse(image_url=image_url)
+    public_url = f"/uploads/products/{filename}"
+
+    return {"url": public_url}
 
 @router.post(
     "/clear-carts",
@@ -801,3 +816,42 @@ def delete_admin_cart(
         return DeleteCartWithReasonResponse(**result)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+
+
+@router.post("/upload/store-cover")
+async def upload_store_cover(
+    file: UploadFile = File(...),
+    admin=Depends(require_admin),
+):
+    if file.content_type not in ALLOWED_IMAGE_TYPES:
+        raise HTTPException(status_code=400, detail="Unsupported image type")
+
+    content = await file.read()
+
+    if not content:
+        raise HTTPException(status_code=400, detail="Empty file")
+
+    if len(content) > MAX_IMAGE_SIZE:
+        raise HTTPException(status_code=400, detail="File is too large")
+
+    try:
+        image = Image.open(BytesIO(content))
+        image.verify()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid image file")
+
+    ext = Path(file.filename or "cover").suffix.lower()
+    if ext not in {".jpg", ".jpeg", ".png", ".webp"}:
+        ext = ".jpg"
+
+    upload_dir = Path("uploads/store")
+    upload_dir.mkdir(parents=True, exist_ok=True)
+
+    filename = f"store_cover_{uuid4().hex}{ext}"
+    file_path = upload_dir / filename
+    file_path.write_bytes(content)
+
+    public_url = f"/uploads/store/{filename}"
+
+    return {"url": public_url}

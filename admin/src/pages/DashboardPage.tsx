@@ -22,6 +22,7 @@ import {
   getAdminShopSettings,
   updateAdminStoreSettings,
   deleteAdminCart,
+  api
 } from "../api/client";
 import type {
   AdminCart,
@@ -584,12 +585,34 @@ const openEditPoint = (point: AdminDeliveryPoint) => {
             />
 
             <input
-              className="input form-span"
-              placeholder="Ссылка на обложку"
-              value={storeSettings.shop_cover_image}
-              onChange={(e) =>
-                setStoreSettings((prev) => ({ ...prev, shop_cover_image: e.target.value }))
-              }
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+
+                try {
+                  const formData = new FormData();
+                  formData.append("file", file);
+
+                  const token = localStorage.getItem("admin_token");
+
+                  const res = await api.post("/admin/upload/store-cover", formData, {
+                    headers: {
+                      Authorization: `Bearer ${token}`,
+                      "Content-Type": "multipart/form-data",
+                    },
+                  });
+
+                  setStoreSettings((prev) => ({
+                    ...prev,
+                    shop_cover_image: res.data.url,
+                  }));
+                } catch (err) {
+                  console.error(err);
+                  alert("Не удалось загрузить обложку");
+                }
+              }}
             />
 
             {storeSettings.shop_cover_image && (

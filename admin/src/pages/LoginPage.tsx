@@ -5,8 +5,8 @@ import { adminLogin, setAdminToken } from "../api/client";
 export default function LoginPage() {
   const navigate = useNavigate();
 
-  const [username, setUsername] = useState("admin");
-  const [password, setPassword] = useState("admin123");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 

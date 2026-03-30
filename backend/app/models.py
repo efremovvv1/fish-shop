@@ -53,7 +53,7 @@ class Cart(Base):
     comment = Column(Text, default="", nullable=False)
     status = Column(String, default="draft", nullable=False)
     delivery_date = Column(Date, nullable=True)
-    delivery_point_id = Column(Integer, ForeignKey("delivery_points.id"), nullable=True)
+    delivery_point_id = Column(Integer, ForeignKey("delivery_points.id", ondelete="CASCADE"), nullable=True)
     approx_time = Column(String(32), nullable=True)
     pickup_number = Column(Integer, unique=True, index=True, nullable=True)
     updated_at = Column(DateTime, default=datetime.utcnow, nullable=False)
@@ -159,7 +159,7 @@ class DeliveryDate(Base):
     __tablename__ = "delivery_dates"
 
     id = Column(Integer, primary_key=True, index=True)
-    delivery_point_id = Column(Integer, ForeignKey("delivery_points.id", ondelete="CASCADE"), nullable=False)
+    delivery_point_id = Column(Integer, ForeignKey("delivery_points.id", ondelete="CASCADE"), nullable=True)
     city = Column(String(255), nullable=False)
     delivery_date = Column(Date, nullable=False)
     approx_time = Column(String(32), nullable=True)
