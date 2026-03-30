@@ -822,7 +822,7 @@ def delete_admin_cart(
 @router.post("/upload/store-cover")
 async def upload_store_cover(
     file: UploadFile = File(...),
-    admin=Depends(require_admin),
+    admin=Depends(verify_admin_token),
 ):
     if file.content_type not in ALLOWED_IMAGE_TYPES:
         raise HTTPException(status_code=400, detail="Unsupported image type")
