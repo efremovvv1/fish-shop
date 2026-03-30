@@ -458,7 +458,7 @@ def delete_admin_delivery_point(point_id: int, db: Session = Depends(get_db)):
 @router.post("/upload/product-image")
 async def upload_product_image(
     file: UploadFile = File(...),
-    admin=Depends(require_admin),
+    admin=Depends(verify_admin_token),
 ):
     if file.content_type not in ALLOWED_IMAGE_TYPES:
         raise HTTPException(status_code=400, detail="Unsupported image type")
