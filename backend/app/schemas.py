@@ -1,5 +1,5 @@
 from typing import Optional, List, Literal
-from pydantic import BaseModel, Field, COnfigDict
+from pydantic import BaseModel, Field, ConfigDict
 from datetime import date
 
 class Product(BaseModel):
