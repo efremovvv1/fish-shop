@@ -268,7 +268,7 @@ class DeliveryDateResponse(BaseModel):
     approx_time: str | None = None
     active: bool
 
-    model_config = COnfigDict(from_attributes = True)
+    model_config = ConfigDict(from_attributes = True)
 
 class Config:
     from_attributes = True
