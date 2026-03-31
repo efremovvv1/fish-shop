@@ -5,6 +5,14 @@ type Props = {
   product: Product;
 };
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
+
+const buildImageUrl = (value?: string) => {
+  if (!value) return "";
+  if (value.startsWith("http://") || value.startsWith("https://")) return value;
+  return `${API_BASE_URL}${value}`;
+};
+
 export default function ProductCard({ product }: Props) {
   const addItem = useCartStore((state) => state.addItem);
   const canEdit = useCartStore((state) => state.canEdit());
@@ -40,7 +48,7 @@ export default function ProductCard({ product }: Props) {
       >
         {product.image_url ? (
           <img
-            src={product.image_url}
+            src={buildImageUrl(product.image_url)}
             alt={product.name}
             style={{
               width: "100%",

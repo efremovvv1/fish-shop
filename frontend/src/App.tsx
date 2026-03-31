@@ -86,6 +86,14 @@ export default function App() {
   const initialized = useCartStore((state) => state.initialized);
   const canEdit = useCartStore((state) => state.canEdit());
 
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
+
+  const buildImageUrl = (value?: string) => {
+    if (!value) return "";
+    if (value.startsWith("http://") || value.startsWith("https://")) return value;
+    return `${API_BASE_URL}${value}`;
+  };
+
   const [toast, setToast] = useState<{
     message: string;
     type: "success" | "error" | "info";
@@ -217,7 +225,7 @@ export default function App() {
     `, }}>
       <Hero 
         title={storeSettings.shop_name || "БАВАРИЯ 🐟 РЫБА 2"}
-        coverImage={storeSettings.shop_cover_image}
+        coverImage={buildImageUrl(storeSettings.shop_cover_image)}
       />
 
       <p style={{ color: "#9ca3af", marginBottom: 20, fontSize: 16 }}>
