@@ -61,7 +61,7 @@ export default function CartDrawer({ onCheckout }: Props) {
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           {collapsed && (
             <button onClick={onCheckout} style={checkoutBtn(canEdit)} disabled={!canEdit}>
-              {canEdit ? "Заказ" : "Закрыто"}
+              {canEdit ? "Открыть корзину" : "Приём закрыт"}
             </button>
           )}
 
@@ -233,12 +233,19 @@ function removeBtn(enabled: boolean) {
 
 function checkoutBtn(enabled: boolean) {
   return {
+    minWidth: 168,
+    height: 52,
+    borderRadius: 14,
     border: "none",
-    borderRadius: 12,
-    padding: "10px 14px",
-    background: enabled ? "#ff6b35" : "#4b5563",
+    background: enabled
+      ? "linear-gradient(180deg, #ff7a3d 0%, #ff6b35 100%)"
+      : "#4b5563",
     color: "#fff",
-    fontWeight: 700,
-    opacity: enabled ? 1 : 0.7,
+    padding: "0 18px",
+    fontWeight: 800,
+    fontSize: 16,
+    boxShadow: enabled ? "0 10px 24px rgba(255,107,53,0.28)" : "none",
+    opacity: enabled ? 1 : 0.75,
+    cursor: enabled ? "pointer" : "not-allowed",
   } as const;
 }

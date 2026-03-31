@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { api, getServerCart, getShopStatus, getStoreSettings ,saveServerCart } from "./api/client";
 import CategoryTabs from "./components/CategoryTabs";
 import ProductCard from "./components/ProductCard";
@@ -69,6 +69,10 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+
+  const categoriesRef = useRef<HTMLDivElement | null>(null);
+  const productsRef = useRef<HTMLDivElement | null>(null);
+  const [showScrollTop, setShowScrollTop] = useState(false);
 
   const [storeSettings, setStoreSettings] = useState({
   shop_name: "БАВАРИЯ 🐟 РЫБА 2",
@@ -217,6 +221,26 @@ export default function App() {
     return products.filter((product) => product.category === selectedCategory);
   }, [products, selectedCategory]);
 
+  const handleCategorySelect = (category: string | null) => {
+    setSelectedCategory(category);
+
+    requestAnimationFrame(() => {
+      productsRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  };
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 500);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   return (
     <div className="container" style={{ paddingBottom: 120, minHeight: "100vh", background: `
       radial-gradient(circle at top left, rgba(37, 190, 176, 0.22), transparent 28%),
@@ -237,17 +261,21 @@ export default function App() {
 
       {!loading && !error && (
         <>
+        <div ref={categoriesRef}>
           <CategoryTabs
             categories={categories}
             selected={selectedCategory}
-            onSelect={setSelectedCategory}
+            onSelect={handleCategorySelect}
           />
+          </div>
 
           <div
+            ref={productsRef}
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
               gap: 16,
+              scrollMarginTop: 20,
             }}
           >
             {filteredProducts.map((product) => (
@@ -297,6 +325,37 @@ export default function App() {
             onError={() => showToast("Не удалось сохранить заказ", "error")}
           />
         </>
+      )}
+
+      {showScrollTop && (
+        <button
+          onClick={() =>
+            categoriesRef.current?.scrollIntoView({
+              behavior: "smooth",
+              block: "start",
+            })
+          }
+          style={{
+            position: "fixed",
+            right: 18,
+            bottom: 110,
+            width: 52,
+            height: 52,
+            borderRadius: 999,
+            border: "1px solid rgba(255,255,255,0.12)",
+            background: "rgba(10, 19, 27, 0.94)",
+            color: "#fff",
+            fontSize: 22,
+            fontWeight: 700,
+            boxShadow: "0 10px 24px rgba(0,0,0,0.32)",
+            backdropFilter: "blur(10px)",
+            zIndex: 60,
+            cursor: "pointer",
+          }}
+          aria-label="Наверх к категориям"
+        >
+          ↑
+        </button>
       )}
 
       {toast && <Toast message={toast.message} type={toast.type} />}
