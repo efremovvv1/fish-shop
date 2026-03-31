@@ -22,7 +22,8 @@ import {
   getAdminShopSettings,
   updateAdminStoreSettings,
   deleteAdminCart,
-  api
+  api,
+  API_BASE_URL,
 } from "../api/client";
 import type {
   AdminCart,
@@ -215,6 +216,15 @@ const loadData = useCallback(async () => {
     }
   };
 
+  const buildImageUrl = (value?: string) => {
+    if (!value) return "";
+    if (value.startsWith("http://") || value.startsWith("https://")) return value;
+    return `${API_BASE_URL}${value}`;
+  };
+
+  const safeTrim = (value: unknown) =>
+    typeof value === "string" ? value.trim() : "";
+
   const buildOrderRowText = (cart: AdminCart) => {
     const itemsText =
       cart.items.length === 0
@@ -253,7 +263,7 @@ const loadData = useCallback(async () => {
         step: Number(productForm.step),
         available_qty: Number(productForm.available_qty),
         notes: productForm.notes.trim(),
-        image_url: productForm.image_url.trim(),
+        image_url: safeTrim(productForm.image_url),
         short_description: productForm.short_description.trim(),
         description: productForm.description.trim(),
         active: productForm.active,
@@ -606,7 +616,7 @@ const openEditPoint = (point: AdminDeliveryPoint) => {
 
                   setStoreSettings((prev) => ({
                     ...prev,
-                    shop_cover_image: res.data.url,
+                    shop_cover_image: res.data.image_url,
                   }));
                 } catch (err) {
                   console.error(err);
@@ -618,7 +628,7 @@ const openEditPoint = (point: AdminDeliveryPoint) => {
             {storeSettings.shop_cover_image && (
               <div className="form-span image-preview-wrap">
                 <img
-                  src={storeSettings.shop_cover_image}
+                  src={buildImageUrl(storeSettings.shop_cover_image)}
                   alt="Cover preview"
                   className="image-preview"
                 />

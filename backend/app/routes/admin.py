@@ -490,7 +490,7 @@ async def upload_product_image(
 
     public_url = f"/uploads/products/{filename}"
 
-    return {"url": public_url}
+    return {"image_url": public_url}
 
 @router.post(
     "/clear-carts",
@@ -854,4 +854,4 @@ async def upload_store_cover(
 
     public_url = f"/uploads/store/{filename}"
 
-    return {"url": public_url}
+    return {"image_url": public_url}
