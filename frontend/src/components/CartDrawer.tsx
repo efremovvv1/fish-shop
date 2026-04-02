@@ -74,7 +74,7 @@ export default function CartDrawer({ onCheckout }: Props) {
               border: "none",
               background: "rgba(255,255,255,0.08)",
               color: "#fff",
-              fontSize: 24,
+              fontSize: 32,
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
