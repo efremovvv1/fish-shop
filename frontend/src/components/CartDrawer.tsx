@@ -68,14 +68,17 @@ export default function CartDrawer({ onCheckout }: Props) {
           <button
             onClick={() => setCollapsed((prev) => !prev)}
             style={{
-              width: 42,
-              height: 42,
-              borderRadius: 12,
+              width: 56,
+              height: 56,
+              borderRadius: 16,
               border: "none",
               background: "rgba(255,255,255,0.08)",
               color: "#fff",
-              fontSize: 18,
+              fontSize: 24,
               cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
             {collapsed ? "▴" : "▾"}
