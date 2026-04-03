@@ -285,3 +285,74 @@ textarea.input {
   border: 1px solid #2c3440;
   object-fit: cover;
 }
+
+.store-admin-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.store-admin-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+.store-admin-actions .btn {
+  min-height: 64px;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.store-settings-form {
+  display: grid;
+  gap: 14px;
+  align-items: start;
+}
+
+.store-cover-preview-wrap {
+  width: 280px;
+  max-width: 100%;
+}
+
+.store-cover-preview {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.08);
+  display: block;
+}
+
+@media (max-width: 1100px) {
+  .store-admin-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .store-cover-preview-wrap {
+    width: 100%;
+    max-width: 420px;
+  }
+}
+
+.password-field {
+  position: relative;
+}
+
+.password-input {
+  padding-right: 52px;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  color: #cbd5e1;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 4px;
+}

@@ -9,6 +9,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,13 +41,24 @@ export default function LoginPage() {
           onChange={(e) => setUsername(e.target.value)}
         />
 
-        <input
-          className="input"
-          placeholder="Пароль"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+        <div className="password-field">
+          <input
+            className="input password-input"
+            placeholder="Пароль"
+            type={showPassword ? "text" : "password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+
+          <button
+            type="button"
+            className="password-toggle"
+            onClick={() => setShowPassword((prev) => !prev)}
+            aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}
+          >
+            {showPassword ? "🙈" : "👁"}
+          </button>
+        </div>
 
         {error && <div className="error-text">{error}</div>}
 

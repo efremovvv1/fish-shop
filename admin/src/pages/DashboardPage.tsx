@@ -379,7 +379,7 @@ const loadData = useCallback(async () => {
         step: Number(editProductForm.step),
         available_qty: Number(editProductForm.available_qty),
         notes: editProductForm.notes.trim(),
-        image_url: editProductForm.image_url.trim(),
+        image_url: safeTrim(editProductForm.image_url),
         short_description: editProductForm.short_description.trim(),
         description: editProductForm.description.trim(),
         active: editProductForm.active,
@@ -546,101 +546,104 @@ const openEditPoint = (point: AdminDeliveryPoint) => {
         </div>
       </div>
 
-            <div className="card">
-        <div className="section-head">
-          <h2>Управление магазином</h2>
+        <div className="card">
+          <div className="section-head">
+            <h2>Управление магазином</h2>
+          </div>
 
-          <div className="actions-row">
-            <button className="btn btn-primary" onClick={downloadOrdersExcel}>
-              Экспорт в Excel
-            </button>
-            <button className="btn btn-secondary" onClick={downloadClientFormatExcel}>
-             Экспорт клиента
-            </button>
+          <div className="store-admin-layout">
+            <div className="store-admin-actions">
+              <button className="btn btn-primary" onClick={downloadOrdersExcel}>
+                Экспорт в Excel
+              </button>
 
-            <button
-              className="btn btn-danger"
-              onClick={handleClearCarts}
-              disabled={clearLoading}
-            >
-              {clearLoading ? "Очистка..." : "Очистить корзины"}
-            </button>
+              <button className="btn btn-secondary" onClick={downloadClientFormatExcel}>
+                Экспорт клиента
+              </button>
 
-             <form
-            className="form-grid"
-            onSubmit={async (e) => {
-              e.preventDefault();
+              <button
+                className="btn btn-danger"
+                onClick={handleClearCarts}
+                disabled={clearLoading}
+              >
+                {clearLoading ? "Очистка..." : "Очистить корзины"}
+              </button>
+            </div>
 
-              try {
-                await updateAdminStoreSettings(storeSettings);
-                showCopyMessage("Настройки магазина обновлены");
-              } catch (err: unknown) {
-                console.error(err);
-
-                if (axios.isAxiosError(err)) {
-                  alert(err.response?.data?.detail || "Не удалось обновить настройки магазина");
-                } else {
-                  alert("Не удалось обновить настройки магазина");
-                }
-              }
-            }}
-          >
-            <input
-              className="input form-span"
-              placeholder="Название магазина"
-              value={storeSettings.shop_name}
-              onChange={(e) =>
-                setStoreSettings((prev) => ({ ...prev, shop_name: e.target.value }))
-              }
-            />
-
-            <input
-              type="file"
-              accept="image/png,image/jpeg,image/webp"
-              onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
+            <form
+              className="store-settings-form"
+              onSubmit={async (e) => {
+                e.preventDefault();
 
                 try {
-                  const formData = new FormData();
-                  formData.append("file", file);
-
-                  const token = localStorage.getItem("admin_token");
-
-                  const res = await api.post("/admin/upload/store-cover", formData, {
-                    headers: {
-                      Authorization: `Bearer ${token}`,
-                      "Content-Type": "multipart/form-data",
-                    },
-                  });
-
-                  setStoreSettings((prev) => ({
-                    ...prev,
-                    shop_cover_image: res.data.image_url,
-                  }));
-                } catch (err) {
+                  await updateAdminStoreSettings(storeSettings);
+                  showCopyMessage("Настройки магазина обновлены");
+                } catch (err: unknown) {
                   console.error(err);
-                  alert("Не удалось загрузить обложку");
+
+                  if (axios.isAxiosError(err)) {
+                    alert(err.response?.data?.detail || "Не удалось обновить настройки магазина");
+                  } else {
+                    alert("Не удалось обновить настройки магазина");
+                  }
                 }
               }}
-            />
+            >
+              <input
+                className="input"
+                placeholder="Название магазина"
+                value={storeSettings.shop_name}
+                onChange={(e) =>
+                  setStoreSettings((prev) => ({ ...prev, shop_name: e.target.value }))
+                }
+              />
 
-            {storeSettings.shop_cover_image && (
-              <div className="form-span image-preview-wrap">
-                <img
-                  src={buildImageUrl(storeSettings.shop_cover_image)}
-                  alt="Cover preview"
-                  className="image-preview"
-                />
-              </div>
-            )}
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
 
-            <button className="btn btn-primary form-span" type="submit">
-              Сохранить настройки
-            </button>
-          </form>
+                  try {
+                    const formData = new FormData();
+                    formData.append("file", file);
+
+                    const token = localStorage.getItem("admin_token");
+
+                    const res = await api.post("/admin/upload/store-cover", formData, {
+                      headers: {
+                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "multipart/form-data",
+                      },
+                    });
+
+                    setStoreSettings((prev) => ({
+                      ...prev,
+                      shop_cover_image: res.data.image_url,
+                    }));
+                  } catch (err) {
+                    console.error(err);
+                    alert("Не удалось загрузить обложку");
+                  }
+                }}
+              />
+
+              {storeSettings.shop_cover_image && (
+                <div className="store-cover-preview-wrap">
+                  <img
+                    src={buildImageUrl(storeSettings.shop_cover_image)}
+                    alt="Cover preview"
+                    className="store-cover-preview"
+                  />
+                </div>
+              )}
+
+              <button className="btn btn-primary" type="submit">
+                Сохранить настройки
+              </button>
+            </form>
           </div>
-        </div>
 
         <div className="status-buttons">
           <button
@@ -974,7 +977,7 @@ const openEditPoint = (point: AdminDeliveryPoint) => {
                     />
                     {productForm.image_url && (
                         <div className="form-span image-preview-wrap">
-                            <img src={productForm.image_url} alt="Preview" className="image-preview" />
+                            <img src={buildImageUrl(productForm.image_url)} alt="Preview" className="image-preview" />
                         </div>
                         )}
 
@@ -1480,7 +1483,7 @@ const openEditPoint = (point: AdminDeliveryPoint) => {
                 />
                 {editProductForm.image_url && (
                 <div className="form-span image-preview-wrap">
-                    <img src={editProductForm.image_url} alt="Preview" className="image-preview" />
+                    <img src={buildImageUrl(editProductForm.image_url)} alt="Preview" className="image-preview" />
                 </div>
                 )}
 
