@@ -81,7 +81,7 @@ export default function CartDrawer({ onCheckout }: Props) {
               justifyContent: "center",
             }}
           >
-            {collapsed ? "▴" : "▾"}
+            {collapsed ? "🧺" : "▾"}
           </button>
         </div>
       </div>
