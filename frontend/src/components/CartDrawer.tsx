@@ -68,20 +68,30 @@ export default function CartDrawer({ onCheckout }: Props) {
           <button
             onClick={() => setCollapsed((prev) => !prev)}
             style={{
-              width: 56,
               height: 56,
+              padding: "0 18px",
               borderRadius: 16,
               border: "none",
-              background: "rgba(255,255,255,0.08)",
+              background: "rgba(255, 255, 255, 0.08)",
               color: "#fff",
-              fontSize: 32,
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
             }}
-          >
-            {collapsed ? "🧺" : "▾"}
+            >
+            <span style = {{ display: "flex", alignItems: "center", gap: 8}}>
+              <svg width="20" height="20" viewBox="0 0 24 24">
+                <path
+                  d="M3 3h212 12h1012-8H6"
+                  stroke="white"
+                  strokeWidth="2"
+                  fill="none"
+                />
+              </svg>
+          
+            {canEdit ? "Открыть корзину" : "Приём закрыт"}
+            </span>
           </button>
         </div>
       </div>

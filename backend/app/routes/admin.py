@@ -7,7 +7,7 @@ from uuid import uuid4
 from pathlib import Path
 from datetime import datetime
 import os
-from app.models import DeliveryDate, DeliveryPointModel
+from app.models import DeliveryDate, DeliveryPointModel, Product
 from PIL import Image
 
 from openpyxl.styles import Alignment, Font, PatternFill, Border, Side
@@ -515,15 +515,38 @@ def export_client_format_excel(db: Session = Depends(get_db)):
 
     grouped = _group_submitted_carts_by_delivery_date(carts)
 
+    products_by_sku = {
+        p.sku: p
+        for p in db.query(Product).all()
+    }
+
     wb = Workbook()
-    # Удаляем пустой стартовый лист, чтобы не мешал
     default_ws = wb.active
     default_ws.title = "Client Format"
 
     thin = Side(style="thin", color="000000")
     border = Border(left=thin, right=thin, top=thin, bottom=thin)
 
-    base_headers = ["Nr.", "Kunde", "Auto 1", "Zeit", "Goroda", "Gebiet"]
+    # Убрали address / Gebiet, оставили только город
+    base_headers = ["Nr.", "Kunde", "Auto 1", "Zeit", "Goroda"]
+
+    if not grouped:
+        ws = default_ws
+        ws.append(base_headers)
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
+
+        return StreamingResponse(
+            output,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={
+                "Content-Disposition": "attachment; filename=fishshop_client_format.xlsx"
+            },
+        )
+
+    # Удаляем стартовый лист, если будут реальные листы
+    wb.remove(default_ws)
 
     for delivery_date in sorted(grouped.keys()):
         ws = wb.create_sheet(title=_sheet_title_from_delivery_date(delivery_date))
@@ -531,10 +554,36 @@ def export_client_format_excel(db: Session = Depends(get_db)):
         headers = base_headers + [entry["column_name"] for entry in mapping]
         ws.append(headers)
 
-        weight_row = ["", "", "", "", "", "Gewicht"] + [entry.get("weight_label", "") for entry in mapping]
+        # Строка "Gewi"
+        weight_row = ["", "", "", "", "Gewi"]
+        for entry in mapping:
+            product = products_by_sku.get(entry["sku"])
+            if product:
+                weight_value = (
+                    float(product.pack_size)
+                    if product.pack_size is not None
+                    else float(product.min_qty)
+                    if product.min_qty is not None
+                    else ""
+                )
+                if isinstance(weight_value, float) and weight_value.is_integer():
+                    weight_value = int(weight_value)
+            else:
+                weight_value = ""
+            weight_row.append(weight_value)
         ws.append(weight_row)
 
-        price_row = ["", "", "", "", "", "Preis"] + [entry.get("price_label", "") for entry in mapping]
+        # Строка "Preis"
+        price_row = ["", "", "", "", "Preis"]
+        for entry in mapping:
+            product = products_by_sku.get(entry["sku"])
+            if product and product.price is not None:
+                price_value = float(product.price)
+                if price_value.is_integer():
+                    price_value = int(price_value)
+            else:
+                price_value = ""
+            price_row.append(price_value)
         ws.append(price_row)
 
         row_index = 1
@@ -552,7 +601,6 @@ def export_client_format_excel(db: Session = Depends(get_db)):
                 "",
                 cart.get("approx_time", "") or row_index,
                 cart.get("city", ""),
-                cart.get("delivery_point", ""),
             ]
 
             for entry in mapping:
@@ -567,11 +615,10 @@ def export_client_format_excel(db: Session = Depends(get_db)):
             "Auto 1": "D9D9D9",
             "Zeit": "F2F2F2",
             "Goroda": "FFF200",
-            "Gebiet": "00FF00",
         }
 
         for col_idx, cell in enumerate(ws[1], start=1):
-            if col_idx <= 6:
+            if col_idx <= len(base_headers):
                 fill_color = header_fills.get(cell.value, "D9D9D9")
                 cell.fill = PatternFill("solid", fgColor=fill_color)
                 cell.font = Font(bold=True)
@@ -582,7 +629,7 @@ def export_client_format_excel(db: Session = Depends(get_db)):
                     wrap_text=True,
                 )
             else:
-                entry = mapping[col_idx - 7]
+                entry = mapping[col_idx - (len(base_headers) + 1)]
                 fill_color = entry.get("fill_color") or "D9D9D9"
                 cell.fill = PatternFill("solid", fgColor=fill_color)
                 cell.font = Font(bold=True)
@@ -595,12 +642,14 @@ def export_client_format_excel(db: Session = Depends(get_db)):
 
             cell.border = border
 
-            cell.border = border
-
         for row_num in [2, 3]:
             for cell in ws[row_num]:
                 cell.border = border
-                cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+                cell.alignment = Alignment(
+                    horizontal="center",
+                    vertical="center",
+                    wrap_text=True,
+                )
                 cell.font = Font(bold=False)
 
         for row in ws.iter_rows(min_row=4, max_row=ws.max_row):
@@ -609,12 +658,11 @@ def export_client_format_excel(db: Session = Depends(get_db)):
                 cell.alignment = Alignment(horizontal="center", vertical="center")
 
         fixed_widths = {
-            1: 8,
-            2: 18,
-            3: 10,
-            4: 10,
-            5: 16,
-            6: 24,
+            1: 8,   # Nr.
+            2: 18,  # Kunde
+            3: 10,  # Auto 1
+            4: 10,  # Zeit
+            5: 16,  # Goroda
         }
 
         for col_idx in range(1, ws.max_column + 1):
