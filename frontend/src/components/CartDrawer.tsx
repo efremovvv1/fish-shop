@@ -89,8 +89,6 @@ export default function CartDrawer({ onCheckout }: Props) {
                   fill="none"
                 />
               </svg>
-          
-            {canEdit ? "Открыть корзину" : "Приём закрыт"}
             </span>
           </button>
         </div>
