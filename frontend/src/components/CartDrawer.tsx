@@ -61,7 +61,7 @@ export default function CartDrawer({ onCheckout }: Props) {
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           {collapsed && (
             <button onClick={onCheckout} style={checkoutBtn(canEdit)} disabled={!canEdit}>
-              {canEdit ? "Открыть корзину" : "Приём закрыт"}
+              {canEdit ? "Перейти к оформлению" : "Приём закрыт"}
             </button>
           )}
 
