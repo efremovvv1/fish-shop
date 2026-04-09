@@ -81,13 +81,17 @@ export default function CartDrawer({ onCheckout }: Props) {
             }}
             >
             <span style = {{ display: "flex", alignItems: "center", gap: 8}}>
-              <svg width="20" height="20" viewBox="0 0 24 24">
+              <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
                 <path
-                  d="M3 3h212 12h1012-8H6"
+                  d="M3 5h2l1.2 6.5A2 2 0 0 0 8.17 13H18a2 2 0 0 0 1.94-1.5L21 7H7"
                   stroke="white"
                   strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                   fill="none"
                 />
+                <circle cx="9" cy="19" r="1.5" fill="white" />
+                <circle cx="17" cy="19" r="1.5" fill="white" />
               </svg>
             </span>
           </button>

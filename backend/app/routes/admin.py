@@ -527,12 +527,12 @@ def export_client_format_excel(db: Session = Depends(get_db)):
     thin = Side(style="thin", color="000000")
     border = Border(left=thin, right=thin, top=thin, bottom=thin)
 
-    # Убрали address / Gebiet, оставили только город
-    base_headers = ["Nr.", "Kunde", "Auto 1", "Zeit", "Goroda"]
+    # Как у клиента
+    base_headers = ["Kunde", "Maschina 1-2", "Bestellungsnummer", "adress"]
 
     if not grouped:
         ws = default_ws
-        ws.append(base_headers)
+        ws.append(base_headers + ["€"])
         output = BytesIO()
         wb.save(output)
         output.seek(0)
@@ -545,18 +545,18 @@ def export_client_format_excel(db: Session = Depends(get_db)):
             },
         )
 
-    # Удаляем стартовый лист, если будут реальные листы
     wb.remove(default_ws)
 
     for delivery_date in sorted(grouped.keys()):
         ws = wb.create_sheet(title=_sheet_title_from_delivery_date(delivery_date))
 
-        headers = base_headers + [entry["column_name"] for entry in mapping]
+        # 1 строка: основные заголовки + товары + итог
+        headers = base_headers + [entry["column_name"] for entry in mapping] + ["€"]
         ws.append(headers)
 
-        # Строка "Gewi"
-        weight_row = ["", "", "", "", "Gewi"]
-        for entry in mapping:
+        # 2 строка: подписи Gewi
+        weight_row = ["", "", "", ""] + ["Gewi"]
+        for entry in mapping[1:]:
             product = products_by_sku.get(entry["sku"])
             if product:
                 weight_value = (
@@ -571,11 +571,12 @@ def export_client_format_excel(db: Session = Depends(get_db)):
             else:
                 weight_value = ""
             weight_row.append(weight_value)
+        weight_row.append("")  # для колонки €
         ws.append(weight_row)
 
-        # Строка "Preis"
-        price_row = ["", "", "", "", "Preis"]
-        for entry in mapping:
+        # 3 строка: подписи Preis
+        price_row = ["", "", "", ""] + ["Preis"]
+        for entry in mapping[1:]:
             product = products_by_sku.get(entry["sku"])
             if product and product.price is not None:
                 price_value = float(product.price)
@@ -584,64 +585,68 @@ def export_client_format_excel(db: Session = Depends(get_db)):
             else:
                 price_value = ""
             price_row.append(price_value)
+        price_row.append("")  # для колонки €
         ws.append(price_row)
-
-        row_index = 1
 
         for cart in grouped[delivery_date]:
             items_map = {}
+            total_sum = 0.0
+
             for item in cart["items"]:
                 sku = (item.get("sku") or "").strip()
                 qty = float(item.get("qty") or 0)
                 items_map[sku] = qty
 
             row = [
-                cart.get("pickup_number", ""),
-                cart.get("customer_name", ""),
-                "",
-                cart.get("approx_time", "") or row_index,
-                cart.get("city", ""),
+                cart.get("customer_name", ""),   # Kunde
+                "",                              # Maschina 1-2
+                cart.get("pickup_number", ""),   # Bestellungsnummer
+                cart.get("city", ""),            # adress
             ]
 
             for entry in mapping:
-                qty = items_map.get(entry["sku"], "")
+                sku = entry["sku"]
+                qty = items_map.get(sku, 0)
+
+                product = products_by_sku.get(sku)
+                price = float(product.price) if product and product.price is not None else 0.0
+                total_sum += qty * price
+
                 row.append("" if qty in (0, 0.0) else qty)
 
+            row.append(round(total_sum, 2))
             ws.append(row)
-            row_index += 1
 
+        # Цвета левой части как у клиента
         header_fills = {
             "Kunde": "FFF200",
-            "Auto 1": "D9D9D9",
-            "Zeit": "F2F2F2",
-            "Goroda": "FFF200",
+            "Maschina 1-2": "D9D9D9",
+            "Bestellungsnummer": "FFF200",
+            "adress": "FFF200",
+            "€": "D9D9D9",
         }
 
         for col_idx, cell in enumerate(ws[1], start=1):
             if col_idx <= len(base_headers):
                 fill_color = header_fills.get(cell.value, "D9D9D9")
                 cell.fill = PatternFill("solid", fgColor=fill_color)
-                cell.font = Font(bold=True)
-                cell.alignment = Alignment(
-                    horizontal="center",
-                    vertical="center",
-                    text_rotation=90,
-                    wrap_text=True,
-                )
+            elif col_idx == ws.max_column:
+                cell.fill = PatternFill("solid", fgColor="D9D9D9")
             else:
                 entry = mapping[col_idx - (len(base_headers) + 1)]
                 fill_color = entry.get("fill_color") or "D9D9D9"
                 cell.fill = PatternFill("solid", fgColor=fill_color)
-                cell.font = Font(bold=True)
-                cell.alignment = Alignment(
-                    horizontal="center",
-                    vertical="center",
-                    text_rotation=90,
-                    wrap_text=True,
-                )
 
+            cell.font = Font(bold=True)
+            cell.alignment = Alignment(
+                horizontal="center",
+                vertical="center",
+                text_rotation=90,
+                wrap_text=True,
+            )
             cell.border = border
 
+        # Строки Gewi / Preis
         for row_num in [2, 3]:
             for cell in ws[row_num]:
                 cell.border = border
@@ -652,23 +657,30 @@ def export_client_format_excel(db: Session = Depends(get_db)):
                 )
                 cell.font = Font(bold=False)
 
+        # Данные клиентов
         for row in ws.iter_rows(min_row=4, max_row=ws.max_row):
             for cell in row:
                 cell.border = border
                 cell.alignment = Alignment(horizontal="center", vertical="center")
 
+        # Жирная итоговая сумма
+        sum_col_idx = ws.max_column
+        for row_num in range(4, ws.max_row + 1):
+            ws.cell(row=row_num, column=sum_col_idx).font = Font(bold=True)
+
         fixed_widths = {
-            1: 8,   # Nr.
-            2: 18,  # Kunde
-            3: 10,  # Auto 1
-            4: 10,  # Zeit
-            5: 16,  # Goroda
+            1: 18,  # Kunde
+            2: 12,  # Maschina 1-2
+            3: 14,  # Bestellungsnummer
+            4: 16,  # adress
         }
 
         for col_idx in range(1, ws.max_column + 1):
             letter = get_column_letter(col_idx)
             if col_idx in fixed_widths:
                 ws.column_dimensions[letter].width = fixed_widths[col_idx]
+            elif col_idx == ws.max_column:
+                ws.column_dimensions[letter].width = 10
             else:
                 ws.column_dimensions[letter].width = 9
 
